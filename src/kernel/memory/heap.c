@@ -81,7 +81,7 @@ int heap_expand_pages(size_t pages) {
         }
         uintptr_t virt = base + (i * PAGE_SIZE);
         if (!vmm_map_page(kernel_pagemap, virt, (uintptr_t)phys, PTE_PRESENT | PTE_WRITABLE | PTE_NX)) {
-            panic("heap_expand_pages: vmm_map_page failed", NULL);
+            panic("heap_expand_pages: vmm_map_page failed");
             return 0;
         }
     }
@@ -130,14 +130,12 @@ void setup_heap(void) {
     heap_size = 0;
 
     if (!heap_expand_pages(INITIAL_HEAP_PAGES)) {
-        panic("init_heap: failed to allocate initial kernel heap", NULL);
+        panic("init_heap: failed to allocate initial kernel heap");
     }
 
     free_list_head = (heap_free_block_t *)heap_start;
     free_list_head->size = heap_size;
     free_list_head->next = NULL;
-
-    // printf("Heap installed\n");
 }
 
 void heap_dump(void) {
@@ -213,15 +211,15 @@ void kfree(void *ptr) {
 
     if ((uintptr_t)block_start < (uintptr_t)heap_start ||
         (uintptr_t)block_start >= (uintptr_t)heap_start + heap_size) {
-        panic("kfree: invalid pointer (out of heap range)", NULL);
+        panic("kfree: invalid pointer (out of heap range)");
     return;
         }
         if (block_size < MIN_ALLOC_SIZE) {
-            panic("kfree: invalid block size", NULL);
+            panic("kfree: invalid block size");
             return;
         }
         if (((uintptr_t)block_start & (HEAP_ALIGNMENT - 1)) != 0) {
-            panic("kfree: alignment error", NULL);
+            panic("kfree: alignment error");
             return;
         }
 

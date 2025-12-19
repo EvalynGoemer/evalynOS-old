@@ -38,6 +38,14 @@ void badapple_kthread() {
     switch_to_user();
 }
 
+__attribute__((noinline))
+void smash_stack() {
+    volatile char buf[16];
+    for (int i = 0; i < 256; i++) {
+        buf[i] = (char)i;
+    }
+}
+
 char *to_upper(const char *s) {
     static char buf[256];
     char *p = buf;
@@ -116,10 +124,12 @@ void execute_commands(const char *cmd) {
     }
     if ((strcmp("CLEAR", to_upper(cmd)) == 0) || (strcmp("CLS", to_upper(cmd)) == 0)) {
         printf("\x1b[2J\x1b[H"); // ansi for clear screen and go home
-        return;
+    }
+    if (strcmp("SMASH", to_upper(cmd)) == 0) {
+        smash_stack();
     }
     if (strcmp("PANIC", to_upper(cmd)) == 0) {
-        panic("You asked for this lmao", NULL);
+        panic("You asked for this lmao");
     }
     if (strcmp("FAULT", to_upper(cmd)) == 0) {
         volatile uint64_t *fault = (volatile uint64_t *)0xDEADBEEF;

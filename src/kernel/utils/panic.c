@@ -1,6 +1,7 @@
-#include "stddef.h"
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #include <symbols.h>
 #include <utils/globals.h>
@@ -136,62 +137,13 @@ static const char *error_mssages[] = {
 
 int panic_count = 0;
 
-void panic(char* message, struct interrupt_frame* frame) {
+__attribute__((noreturn))
+void panic_interrupt_frame(char* message, struct interrupt_frame* frame) {
     asm volatile("cli");
 
-    unsigned long rax, rbx, rcx, rdx, rsi, rdi;
-    unsigned long rbp, rsp, r8, r9, r10, r11, r12, r13, r14, r15;
-
-    unsigned long flags;
     unsigned long cr0, cr2, cr3, cr4, cr8;
     struct descriptor_table_ptr gdtr, idtr;
     unsigned short ldt, tr;
-
-    if (frame == NULL) {
-        asm volatile(
-            "mov %%rax, %0\n\t"
-            "mov %%rbx, %1\n\t"
-            "mov %%rcx, %2\n\t"
-            "mov %%rdx, %3\n\t"
-            "mov %%rsi, %4\n\t"
-            "mov %%rdi, %5\n\t"
-            "mov %%rbp, %6\n\t"
-            "mov %%rsp, %7\n\t"
-            "mov %%r8,  %8\n\t"
-            "mov %%r9,  %9\n\t"
-            "mov %%r10, %10\n\t"
-            "mov %%r11, %11\n\t"
-            "mov %%r12, %12\n\t"
-            "mov %%r13, %13\n\t"
-            "mov %%r14, %14\n\t"
-            "mov %%r15, %15\n\t"
-            : "=m"(rax), "=m"(rbx), "=m"(rcx), "=m"(rdx), "=m"(rsi), "=m"(rdi), "=m"(rbp), "=m"(rsp), "=m"(r8), "=m"(r9), "=m"(r10), "=m"(r11), "=m"(r12), "=m"(r13), "=m"(r14), "=m"(r15));
-
-        asm volatile(
-            "pushfq\n\t"
-            "pop %0\n\t"
-            : "=r"(flags)
-        );
-    } else {
-        rax = frame->rax;
-        rbx = frame->rbx;
-        rcx = frame->rcx;
-        rdx = frame->rdx;
-        rsi = frame->rsi;
-        rdi = frame->rdi;
-        rbp = frame->rbp;
-        rsp = frame->rsp;
-        r8  = frame->r8;
-        r9  = frame->r9;
-        r10 = frame->r10;
-        r11 = frame->r11;
-        r12 = frame->r12;
-        r13 = frame->r13;
-        r14 = frame->r14;
-        r15 = frame->r15;
-
-        flags = frame->flags;
-    }
 
     asm volatile(
         "mov %%cr0, %0\n\t"
@@ -243,14 +195,14 @@ void panic(char* message, struct interrupt_frame* frame) {
     printf("\033[38;2;255;48;48m%s\033[0m\n", message);
 
     printf("\033[38;2;175;56;255mGeneral Registers:\n");
-    printf("RAX=0x%016lx RBX=0x%016lx\n", rax, rbx);
-    printf("RCX=0x%016lx RDX=0x%016lx\n", rcx, rdx);
-    printf("RSI=0x%016lx RDI=0x%016lx\n", rsi, rdi);
-    printf("RBP=0x%016lx RSP=0x%016lx\n", rbp, rsp);
-    printf("R8 =0x%016lx R9 =0x%016lx\n", r8, r9);
-    printf("R10=0x%016lx R11=0x%016lx\n", r10, r11);
-    printf("R12=0x%016lx R13=0x%016lx\n", r12, r13);
-    printf("R14=0x%016lx R15=0x%016lx\n", r14, r15);
+    printf("RAX=0x%016lx RBX=0x%016lx\n", frame->rax, frame->rbx);
+    printf("RCX=0x%016lx RDX=0x%016lx\n", frame->rcx, frame->rdx);
+    printf("RSI=0x%016lx RDI=0x%016lx\n", frame->rsi, frame->rdi);
+    printf("RBP=0x%016lx RSP=0x%016lx\n", frame->rbp, frame->rsp);
+    printf("R8 =0x%016lx R9 =0x%016lx\n", frame->r8, frame->r9);
+    printf("R10=0x%016lx R11=0x%016lx\n", frame->r10, frame->r11);
+    printf("R12=0x%016lx R13=0x%016lx\n", frame->r12, frame->r13);
+    printf("R14=0x%016lx R15=0x%016lx\n", frame->r14, frame->r15);
 
     if (frame != NULL) {
         printf("\033[38;2;231;133;255mInterrupt Frame:\n");
@@ -295,9 +247,9 @@ void panic(char* message, struct interrupt_frame* frame) {
 
     printf("RFLAGS: " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN
     " " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN " \n",
-    BYTE_TO_BINARY(flags >> 24),
-           BYTE_TO_BINARY(flags >> 16),
-           BYTE_TO_BINARY(flags >> 8), BYTE_TO_BINARY(flags));
+    BYTE_TO_BINARY(frame->flags >> 24),
+           BYTE_TO_BINARY(frame->flags >> 16),
+           BYTE_TO_BINARY(frame->flags >> 8), BYTE_TO_BINARY(frame->flags));
 
     printf("GDTR Base=0x%016lx GDTR Limit=0x%08x\n", gdtr.base, gdtr.limit);
     printf("IDTR Base=0x%016lx IDTR Limit=0x%08x\n", idtr.base, idtr.limit);
@@ -305,59 +257,83 @@ void panic(char* message, struct interrupt_frame* frame) {
 
 
     printf("\033[38;2;26;237;209mStack Trace:\n");
+
     uint64_t *rbp_ptr;
     asm volatile ("mov %%rbp, %0" : "=r" (rbp_ptr));
-    if (frame != NULL) {
-        switch (frame->vector) {
-            case INTERRUPT_HANDLER_DOUBLE_FAULT:
-                if(flags | PANIC_FLAGS_FRAME) {
-                    for (unsigned int j = 0; j < symbol_count; j++) {
-                        if (frame->ip >= symbols[j].address && frame->ip  < symbols[j].address + symbols[j].size) {
-                            uint64_t offset = frame->ip - symbols[j].address;
-                            printf("%s: 0x%016lx + 0x%08lx\n", symbols[j].name, symbols[j].address, offset);
-                            break;
-                        }
-                    }
-                }
-                break;
-            case INTERRUPT_HANDLER_GENERAL_PROTECTION_FAULT:
-                if(flags | PANIC_FLAGS_FRAME) {
-                    for (unsigned int j = 0; j < symbol_count; j++) {
-                        if (frame->ip >= symbols[j].address && frame->ip  < symbols[j].address + symbols[j].size) {
-                            uint64_t offset = frame->ip - symbols[j].address;
-                            printf("%s: 0x%016lx + 0x%08lx\n", symbols[j].name, symbols[j].address, offset);
 
-                            break;
-                        }
+    switch (frame->vector) {
+        case INTERRUPT_HANDLER_DOUBLE_FAULT:
+            if(frame->flags | PANIC_FLAGS_FRAME) {
+                for (unsigned int j = 0; j < symbol_count; j++) {
+                    if (frame->ip >= symbols[j].address && frame->ip  < symbols[j].address + symbols[j].size) {
+                        uint64_t offset = frame->ip - symbols[j].address;
+                        printf("%s: 0x%016lx + 0x%08lx\n", symbols[j].name, symbols[j].address, offset);
+                        break;
                     }
                 }
-                break;
-            case INTERRUPT_HANDLER_PAGE_FAULT:
-                if(flags | PANIC_FLAGS_FRAME) {
-                    for (unsigned int j = 0; j < symbol_count; j++) {
-                        if (frame->ip >= symbols[j].address && frame->ip  < symbols[j].address + symbols[j].size) {
-                            uint64_t offset = frame->ip - symbols[j].address;
-                            printf("%s: 0x%016lx + 0x%08lx\n", symbols[j].name, symbols[j].address, offset);
-                            break;
-                        }
+            }
+            break;
+        case INTERRUPT_HANDLER_GENERAL_PROTECTION_FAULT:
+            if(frame->flags | PANIC_FLAGS_FRAME) {
+                for (unsigned int j = 0; j < symbol_count; j++) {
+                    if (frame->ip >= symbols[j].address && frame->ip  < symbols[j].address + symbols[j].size) {
+                        uint64_t offset = frame->ip - symbols[j].address;
+                        printf("%s: 0x%016lx + 0x%08lx\n", symbols[j].name, symbols[j].address, offset);
+
+                        break;
                     }
                 }
-                break;
-        }
+            }
+            break;
+        case INTERRUPT_HANDLER_PAGE_FAULT:
+            if(frame->flags | PANIC_FLAGS_FRAME) {
+                for (unsigned int j = 0; j < symbol_count; j++) {
+                    if (frame->ip >= symbols[j].address && frame->ip  < symbols[j].address + symbols[j].size) {
+                        uint64_t offset = frame->ip - symbols[j].address;
+                        printf("%s: 0x%016lx + 0x%08lx\n", symbols[j].name, symbols[j].address, offset);
+                        break;
+                    }
+                }
+            }
+            break;
     }
 
-    while (rbp_ptr) {
+    uint64_t *prev_rbp = NULL;
+    unsigned int frames = 0;
+
+    while (rbp_ptr && frames++ < 64) {
+        uintptr_t rbp = (uintptr_t)rbp_ptr;
+
+        if ((rbp & 0xF) != 0) break;
+
+        if (rbp < 0x4000) break;
+
+        if (prev_rbp && rbp <= (uintptr_t)prev_rbp) break;
+
+        uint64_t next_rbp = rbp_ptr[0];
         uint64_t rip = rbp_ptr[1];
+
+        bool found = false;
         for (unsigned int j = 0; j < symbol_count; j++) {
-            if (rip >= symbols[j].address && rip < symbols[j].address + symbols[j].size) {
-                uint64_t offset = rip - symbols[j].address;
-                printf("%s: 0x%016lx + 0x%08lx\n", symbols[j].name, symbols[j].address, offset);
+            uint64_t start = symbols[j].address;
+            uint64_t end = start + symbols[j].size;
+
+            if (rip >= start && rip < end) {
+                uint64_t offset = rip - start;
+                printf("%s: 0x%016lx + 0x%08lx\n", symbols[j].name, start, offset);
+                found = true;
                 break;
             }
         }
 
-        rbp_ptr = (uint64_t *)rbp_ptr[0];
+        if (!found) {
+            printf("unknown: 0x%016lx\n", rip);
+        }
+
+        prev_rbp = rbp_ptr;
+        rbp_ptr = (uint64_t *)next_rbp;
     }
+
     printf("\x1b[0m");
     printf("                                                                                                    \n");
     printf("                                         @@@@@@@@@@@@@@@@@@@@@                                      \n");

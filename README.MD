@@ -36,6 +36,7 @@ Copy the `EFI` folder and `limine.conf` and `kernel.elf` and `initramfs.tar` to 
 - `CREDITS`: Prints credits.txt
 - `CLEAR`: Clears the terminal (ALIAS: `CLS`)
 - `MMAP`: Prints the memory map provided by the bootloader
+- `SMASH`: Smashes the stack to test stack smashing protection
 - `PANIC`: Causes a kernel panic
 - `FAULT`: Causes a Page Fault to panic with extended info
 - `BADAPPLE`: Plays the Bad Apple demo inside userspace

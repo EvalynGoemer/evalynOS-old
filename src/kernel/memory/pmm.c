@@ -80,10 +80,10 @@ size_t get_free_memory() {
 
 void setup_pmm() {
     if (memmap_request.response == NULL) {
-        panic("Could not acquire memory map response", NULL);
+        panic("Could not acquire memory map response");
     }
     if (executable_address_request.response == NULL) {
-        panic("Could not acquire kernel address response", NULL);
+        panic("Could not acquire kernel address response");
     }
 
     size_t entry_count = memmap_request.response->entry_count;

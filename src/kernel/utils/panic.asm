@@ -1,14 +1,9 @@
-global syscall_handler
-extern execute_syscall
-
-syscall_handler:
-    swapgs
-
+extern panic_interrupt_frame
+global panic
+panic:
     cli
-
-    mov [gs:32], rsp
-    mov rsp, [gs:24]
-
+    push 0
+    push 255
     push rax
     push rbx
     push rcx
@@ -25,8 +20,8 @@ syscall_handler:
     push r14
     push r15
 
-    mov rdi, rsp
-    call execute_syscall
+    mov rsi, rsp
+    call panic_interrupt_frame
 
     pop r15
     pop r14
@@ -44,9 +39,8 @@ syscall_handler:
     pop rbx
     pop rax
 
-    mov [gs:24], rsp
-    mov rsp, [gs:32]
+    add rsp, 16
 
-    swapgs
-
-    o64 sysret
+    halt:
+    hlt
+    jmp halt

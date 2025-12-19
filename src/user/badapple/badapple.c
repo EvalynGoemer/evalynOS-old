@@ -3,12 +3,22 @@
 
 #include <stdint.h>
 
+uint64_t __stack_chk_guard = 0xdeafbeef69420bad;
+
+__attribute__((noreturn))
+void __stack_chk_fail(void) {
+    while (1) {
+
+    }
+}
+
 static long syscall(int syscall_type, long a) {
     long ret;
     __asm__ volatile (
         "syscall"
         : "=a"(ret)
         : "a"(syscall_type), "b"(a)
+        : "rcx", "r11", "memory"
     );
     return ret;
 }
@@ -18,8 +28,7 @@ int get_id() {
 }
 
 void print(char* string) {
-    // do not call me
-    // syscall(1, (long)string);
+    syscall(1, (long)string);
 }
 
 void play_sound(long dx) {
@@ -98,6 +107,8 @@ void drawFrame(const unsigned char* rleData, int rleLength, int frameWidth, int 
 
 int main() __attribute__((section(".entry")));
 int main() {
+    print("[BADAPPLE] Syscall Working\n");
+
     int thread_id = get_id() - 1;
 
     setup_fb();

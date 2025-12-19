@@ -13,10 +13,6 @@ volatile bool serial_works = false;
 volatile uint8_t serial_buffer_index;
 volatile char serial_buffer[256] = {'\0'};
 
-static inline void io_wait() {
-    outb(0x80, 0);
-}
-
 int serialDeviceRead(__attribute__((unused)) char* path, char* return_data, int read_length) {
     for (int i = 0; i < read_length; i++) {
         return_data[i] = serial_buffer[serial_buffer_index];

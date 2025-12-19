@@ -18,11 +18,12 @@ ifeq ($(filter $(ARCH), x86_64),)
 endif
 
 # User controllable toolchain and toolchain prefix.
-TOOLCHAIN :=
+TOOLCHAIN :=llvm
 TOOLCHAIN_PREFIX :=
 ifneq ($(TOOLCHAIN),)
     ifeq ($(TOOLCHAIN_PREFIX),)
         TOOLCHAIN_PREFIX := $(TOOLCHAIN)-
+        TOOLCHAIN_PREFIX := $(TOOLCHAIN)
     endif
 endif
 
@@ -47,7 +48,7 @@ CPPFLAGS :=
 
 ifeq ($(ARCH),x86_64)
     # User controllable nasm flags.
-    NASMFLAGS :=
+    NASMFLAGS := -g
 endif
 
 # User controllable linker flags. We set none by default.
@@ -63,8 +64,8 @@ override CFLAGS += \
     -std=gnu11 \
     -nostdinc \
     -ffreestanding \
-    -fno-stack-protector \
-    -fno-stack-check \
+    -fstack-protector-all \
+    -fstack-check \
     -fno-lto \
     -fno-PIC \
     -ffunction-sections \

@@ -1,5 +1,3 @@
-#include "stddef.h"
-#include "utils/panic.h"
 #include <stdint.h>
 
 #include <interupts/pit.h>
@@ -15,10 +13,10 @@
 void init_syscall() {
     // enable syscall instruction
     uint64_t efer = rdmsr(EFER);
-    efer |= (1 <<  0);
+    efer |= (1 << 0);
     wrmsr(EFER, efer);
 
-    uint64_t star = ((uint64_t)0x18 < 48) | ((uint64_t)0x08 << 32);
+    uint64_t star = ((uint64_t)0x18 << 48) | ((uint64_t)0x08 << 32);
     wrmsr(STAR, star);
 
     wrmsr(LSTAR, (uint64_t)syscall_handler);
@@ -36,9 +34,7 @@ void execute_syscall(struct syscall_frame* frame) {
         // HACK: THIS IS REALLY UNSAFE
         // print (set to panic for debugging)
         case 1:
-            printf("Syscall called from: %lx\n", frame->rcx);
-            panic("I should not be being called", NULL);
-            // printf("Printing %s\n", (char*)frame->rbx);
+            printf("%s", (char*)frame->rbx);
             frame->rax = 0;
             break;
         // play sound
@@ -65,9 +61,6 @@ void execute_syscall(struct syscall_frame* frame) {
         case 22:
             frame->rax = pitInteruptsTriggered;
             break;
-        default:
-            frame->rax = 0xDEADBEEF;
-            break;
         // map framebuffer to 0x00000000A0000000 as write combining
         case 30:
             asm volatile ("nop");
@@ -90,6 +83,9 @@ void execute_syscall(struct syscall_frame* frame) {
         // get framebuffer pitch
         case 31:
             frame->rax = framebuffer->pitch;
+            break;
+        default:
+            frame->rax = -1;
             break;
     }
 }

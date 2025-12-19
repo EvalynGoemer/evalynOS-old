@@ -232,7 +232,7 @@ uintptr_t vmm_virt_to_phys(pagemap_t *pagemap, uintptr_t virt_addr) {
 
 void vmm_switch_to(pagemap_t *pagemap) {
     if (!pagemap || !pagemap->top_level) {
-        panic("Attempted to switch to an invalid pagemap\n", NULL);
+        panic("Attempted to switch to an invalid pagemap\n");
         return;
     }
 
@@ -243,18 +243,18 @@ void vmm_switch_to(pagemap_t *pagemap) {
 
 void setup_vmm() {
     if (hhdm_request.response == NULL) {
-        panic("HHDM request response missing\n", NULL);
+        panic("HHDM request response missing\n");
     }
     if (executable_address_request.response == NULL) {
-        panic("Kernel Address request response missing\n", NULL);
+        panic("Kernel Address request response missing\n");
     }
     if (memmap_request.response == NULL) {
-        panic("Memory Map request response missing\n", NULL);
+        panic("Memory Map request response missing\n");
     }
 
     void *pml4_phys = allocate_page();
     if (pml4_phys == NULL) {
-        panic("Failed to allocate kernel PML4 table page\n", NULL);
+        panic("Failed to allocate kernel PML4 table page\n");
     }
     uint64_t *pml4_virt = (uint64_t *)((uintptr_t)pml4_phys + VMM_HIGHER_HALF);
     memset(pml4_virt, 0, PAGE_SIZE);
@@ -294,7 +294,7 @@ void setup_vmm() {
         }
 
         if (!vmm_map_page(kernel_pagemap, p_virt, p_phys, flags)) {
-            panic("Failed to map kernel page\n", NULL);
+            panic("Failed to map kernel page\n");
         }
     }
 
@@ -311,7 +311,7 @@ void setup_vmm() {
 
         for (uintptr_t p = map_base; p < map_top; p += PAGE_SIZE) {
             if (!vmm_map_page(kernel_pagemap, p + VMM_HIGHER_HALF, p, PTE_PRESENT | PTE_WRITABLE | PTE_NX)) {
-                panic("Failed to map HHDM page", NULL);
+                panic("Failed to map HHDM page");
             }
         }
     }
@@ -340,7 +340,7 @@ void setup_vmm() {
 pagemap_t *new_pagemap() {
     void *pml4_phys = allocate_page();
     if (pml4_phys == NULL) {
-        panic("Failed to allocate new PML4 table page\n", NULL);
+        panic("Failed to allocate new PML4 table page\n");
     }
     uint64_t *pml4_virt = (uint64_t *)((uintptr_t)pml4_phys + VMM_HIGHER_HALF);
     memcpy(pml4_virt, kernel_pagemap->top_level, PAGE_SIZE);
