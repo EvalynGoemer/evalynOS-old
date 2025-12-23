@@ -16,7 +16,7 @@ void init_syscall() {
     efer |= (1 << 0);
     wrmsr(EFER, efer);
 
-    uint64_t star = ((uint64_t)0x18 << 48) | ((uint64_t)0x08 << 32);
+    uint64_t star = ((uint64_t)(0x18 | 3) << 48) | ((uint64_t)0x08 << 32);
     wrmsr(STAR, star);
 
     wrmsr(LSTAR, (uint64_t)syscall_handler);
@@ -24,8 +24,6 @@ void init_syscall() {
 }
 
 void execute_syscall(struct syscall_frame* frame) {
-    printf("Syscall ID %ld called from: %lx\n", frame->rax, frame->rcx);
-
     switch (frame->rax) {
         // get thread id
         case 0:

@@ -117,23 +117,27 @@ void execute_commands(const char *cmd) {
         return;
     }
     if (strcmp("BADAPPLE", to_upper(cmd)) == 0) {
-            pagemap_t* pagemap = new_pagemap();
-            create_thread(badapple_kthread, pagemap);
-            printf("Started playing BAD APPLE in userspace\n");
+        pagemap_t* pagemap = new_pagemap();
+        create_thread(badapple_kthread, pagemap);
+        printf("Started playing BAD APPLE in userspace\n");
         return;
     }
     if ((strcmp("CLEAR", to_upper(cmd)) == 0) || (strcmp("CLS", to_upper(cmd)) == 0)) {
         printf("\x1b[2J\x1b[H"); // ansi for clear screen and go home
+        return;
     }
     if (strcmp("SMASH", to_upper(cmd)) == 0) {
         smash_stack();
+        return;
     }
     if (strcmp("PANIC", to_upper(cmd)) == 0) {
         panic("You asked for this lmao");
+        return;
     }
     if (strcmp("FAULT", to_upper(cmd)) == 0) {
         volatile uint64_t *fault = (volatile uint64_t *)0xDEADBEEF;
         *fault = 0xDEADBEEF;
+        return;
     }
 
     if (strcmp("", to_upper(cmd)) != 0) {

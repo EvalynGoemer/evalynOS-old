@@ -107,8 +107,6 @@ void drawFrame(const unsigned char* rleData, int rleLength, int frameWidth, int 
 
 int main() __attribute__((section(".entry")));
 int main() {
-    print("[BADAPPLE] Syscall Working\n");
-
     int thread_id = get_id() - 1;
 
     setup_fb();

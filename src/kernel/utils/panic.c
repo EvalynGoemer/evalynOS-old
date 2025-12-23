@@ -118,19 +118,6 @@ static const char *error_mssages[] = {
     "Program in C pointers, assembly manage your memory with malloc and free!",
 };
 
-// taken from https://stackoverflow.com/a/3208376
-#define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
-#define BYTE_TO_BINARY(byte)  \
-((byte) & 0x80 ? '1' : '0'), \
-((byte) & 0x40 ? '1' : '0'), \
-((byte) & 0x20 ? '1' : '0'), \
-((byte) & 0x10 ? '1' : '0'), \
-((byte) & 0x08 ? '1' : '0'), \
-((byte) & 0x04 ? '1' : '0'), \
-((byte) & 0x02 ? '1' : '0'), \
-((byte) & 0x01 ? '1' : '0')
-
-
 #define PANIC_FLAGS_VECTOR (1 << 0)
 #define PANIC_FLAGS_FRAME (1 << 1)
 #define PANIC_FLAGS_ERROR (1 << 2)
@@ -204,52 +191,43 @@ void panic_interrupt_frame(char* message, struct interrupt_frame* frame) {
     printf("R12=0x%016lx R13=0x%016lx\n", frame->r12, frame->r13);
     printf("R14=0x%016lx R15=0x%016lx\n", frame->r14, frame->r15);
 
-    if (frame != NULL) {
-        printf("\033[38;2;231;133;255mInterrupt Frame:\n");
-        printf("IP=0x%016lx SP=0x%016lx\n", frame->ip, frame->rsp);
-        printf("SS=0x%016lx CS=0x%016lx\n", frame->ss, frame->cs);
-        printf("FLAGS : " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN
-        " " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN " \n",
-            BYTE_TO_BINARY(frame->flags >> 24),
-               BYTE_TO_BINARY(frame->flags >> 16),
-               BYTE_TO_BINARY(frame->flags >> 8), BYTE_TO_BINARY(frame->flags));
-    }
+    printf("\033[38;2;231;133;255mInterrupt Frame:\n");
+    printf("IP=0x%016lx SP=0x%016lx\n", frame->ip, frame->rsp);
+    printf("SS=0x%016lx CS=0x%016lx\n", frame->ss, frame->cs);
+    printf("FLAGS: %08b %08b %08b %08b\n",
+            (int)frame->flags >> 24 & 0xFF,
+            (int)frame->flags >> 16 & 0xFF,
+            (int)frame->flags >> 8  & 0xFF,
+            (int)frame->flags       & 0xFF);
+
+    printf("ERROR: %08b %08b %08b %08b\n",
+           (int)frame->error >> 24 & 0xFF,
+           (int)frame->error >> 16 & 0xFF,
+           (int)frame->error >> 8  & 0xFF,
+           (int)frame->error       & 0xFF);
+
     printf("\033[38;2;255;238;0mControl Registers:\n");
+    printf("CR0: %08b %08b %08b %08b\n",
+           (int)cr0 >> 24 & 0xFF,
+           (int)cr0 >> 16 & 0xFF,
+           (int)cr0 >> 8  & 0xFF,
+           (int)cr0       & 0xFF);
 
-    printf("CR0: " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN
-    " " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN " \n",
-    BYTE_TO_BINARY(cr0 >> 24),
-           BYTE_TO_BINARY(cr0 >> 16),
-           BYTE_TO_BINARY(cr0 >> 8), BYTE_TO_BINARY(cr0));
+    printf("CR4: %08b %08b %08b %08b\n",
+           (int)cr4 >> 24 & 0xFF,
+           (int)cr4 >> 16 & 0xFF,
+           (int)cr4 >> 8  & 0xFF,
+           (int)cr4       & 0xFF);
 
-    printf("CR4: " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN
-    " " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN " \n",
-    BYTE_TO_BINARY(cr4 >> 24),
-           BYTE_TO_BINARY(cr4 >> 16),
-           BYTE_TO_BINARY(cr4 >> 8), BYTE_TO_BINARY(cr4));
-
-    printf("CR8: " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN
-    " " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN " \n",
-    BYTE_TO_BINARY(cr8 >> 24),
-           BYTE_TO_BINARY(cr8 >> 16),
-           BYTE_TO_BINARY(cr8 >> 8), BYTE_TO_BINARY(cr8));
+    printf("CR8: %08b %08b %08b %08b\n",
+           (int)cr8 >> 24 & 0xFF,
+           (int)cr8 >> 16 & 0xFF,
+           (int)cr8 >> 8  & 0xFF,
+           (int)cr8       & 0xFF);
 
     printf("CR2=0x%016lx CR3=0x%016lx\n", cr2, cr3);
 
     printf("\033[38;2;76;230;112mMisc:\n");
-
-    if (frame != NULL) {
-        printf("ERROR : " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN
-        " " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN " \n",
-        BYTE_TO_BINARY(frame->error >> 24), BYTE_TO_BINARY(frame->error > 16),
-               BYTE_TO_BINARY(frame->error >> 8), BYTE_TO_BINARY(frame->error));
-    }
-
-    printf("RFLAGS: " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN
-    " " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN " \n",
-    BYTE_TO_BINARY(frame->flags >> 24),
-           BYTE_TO_BINARY(frame->flags >> 16),
-           BYTE_TO_BINARY(frame->flags >> 8), BYTE_TO_BINARY(frame->flags));
 
     printf("GDTR Base=0x%016lx GDTR Limit=0x%08x\n", gdtr.base, gdtr.limit);
     printf("IDTR Base=0x%016lx IDTR Limit=0x%08x\n", idtr.base, idtr.limit);

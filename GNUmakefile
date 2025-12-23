@@ -66,6 +66,7 @@ override CFLAGS += \
     -ffreestanding \
     -fstack-protector-all \
     -fstack-check \
+    -fsanitize=undefined \
     -fno-lto \
     -fno-PIC \
     -ffunction-sections \
