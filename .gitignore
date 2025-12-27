@@ -1,10 +1,10 @@
 # Compiled Files
 *.efi
+*.EFI
 *.elf
 *.o
 *.so
 *.bin
-/EFI/
 /obj*/
 /bin*/
 
@@ -12,6 +12,7 @@
 /src/generated/*.c
 /src/generated/*.hash
 initramfs.tar
+*.iso
 
 # QEMU Files
 OVMF*

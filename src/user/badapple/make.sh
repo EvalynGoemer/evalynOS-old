@@ -1,6 +1,5 @@
-clang -O2 -mgeneral-regs-only -ffreestanding -fPIC -nostdlib -fno-asynchronous-unwind-tables -fstack-protector-all -c badapple.c -o badapple.o
-ld -nostdlib -T badapple.ld -o badapple.elf badapple.o
-objcopy -O binary badapple.elf badapple.bin
+x86_64-evalynos-gcc -O2 badapple.c -o badapple.elf
+x86_64-evalynos-strip hello_world.elf
 
-cp ./badapple.bin ../../initramfs
+cp ./badapple.elf ../../initramfs
 cd ../../../

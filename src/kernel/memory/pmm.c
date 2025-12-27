@@ -201,7 +201,7 @@ void *allocate_page() {
 
     asm volatile("sti");
 
-    printf("Kernel: Out of physical memory!\n");
+    panic("Kernel: Out of physical memory!\n");
     return NULL;
 }
 

@@ -12,6 +12,8 @@ struct thread {
 
     pagemap_t* pagemap;
 
+    uint64_t heap_pos;
+
     int is_user_task;
 };
 

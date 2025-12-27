@@ -2,7 +2,7 @@
 import subprocess
 import re
 
-binary_path = "./kernel.elf"
+binary_path = "./iso/kernel.elf"
 output_c_file = "./src/generated/symbols.c"
 
 result = subprocess.run(["nm", "-S", "-n", binary_path], capture_output=True, text=True)

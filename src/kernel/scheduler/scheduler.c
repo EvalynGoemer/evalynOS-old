@@ -30,6 +30,8 @@ void create_thread(void (*entry_point)(void*), pagemap_t *pagemap) {
     struct thread* new_thread = malloc(sizeof(struct thread));
     memset(new_thread, 0, sizeof(struct thread));
 
+    new_thread->heap_pos = 0x00000000B0000000;
+
     new_thread->stack = malloc(STACK_SIZE);
     memset(new_thread->stack, 0, STACK_SIZE);
     new_thread->stack_top = (void *)(((uintptr_t)new_thread->stack + STACK_SIZE) & ~0xFULL);

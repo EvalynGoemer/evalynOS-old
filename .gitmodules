@@ -13,3 +13,6 @@
 [submodule "deps/nanoprintf"]
 	path = deps/nanoprintf
 	url = https://github.com/charlesnicholson/nanoprintf.git
+[submodule "src/libc/mlibc"]
+	path = src/libc/mlibc
+	url = https://github.com/managarm/mlibc/

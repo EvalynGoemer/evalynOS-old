@@ -66,7 +66,6 @@ override CFLAGS += \
     -ffreestanding \
     -fstack-protector-all \
     -fstack-check \
-    -fsanitize=undefined \
     -fno-lto \
     -fno-PIC \
     -ffunction-sections \
@@ -152,14 +151,14 @@ run:
 	./src/build-scripts/generate-all.sh
 	make all -j${nproc}
 	./src/build-scripts/undo-patches.sh
-	cp ./bin-x86_64/kernel.elf ./kernel.elf
+	cp ./bin-x86_64/kernel.elf ./iso/kernel.elf
 	qemu-system-x86_64 \
 		-machine q35,accel=kvm \
 		-cpu host \
 		-m 512M \
 		-drive if=pflash,format=raw,readonly=on,file=./OVMF_CODE.4m.fd \
 		-drive if=pflash,format=raw,readonly=on,file=./OVMF_VARS.4m.fd \
-		-drive format=raw,file=fat:rw:. \
+		-drive format=raw,file=fat:rw:./iso \
 		-boot d \
 		-audiodev pa,id=speaker -machine pcspk-audiodev=speaker \
 		-serial stdio
@@ -172,12 +171,12 @@ debug:
 	make genclean
 	./src/build-scripts/generate-all.sh
 	make all -j${nproc}
-	cp ./bin-x86_64/kernel.elf ./kernel.elf
+	cp ./bin-x86_64/kernel.elf ./iso/kernel.elf
 	./src/build-scripts/generate-symbols.py
 	make clean
 	make all -j${nproc}
 	./src/build-scripts/undo-patches.sh
-	cp ./bin-x86_64/kernel.elf ./kernel.elf
+	cp ./bin-x86_64/kernel.elf ./iso/kernel.elf
 	qemu-system-x86_64 \
 		-machine q35 \
 		-s -S \
@@ -185,7 +184,7 @@ debug:
 		-m 512M \
 		-drive if=pflash,format=raw,readonly=on,file=./OVMF_CODE.4m.fd \
 		-drive if=pflash,format=raw,readonly=on,file=./OVMF_VARS.4m.fd \
-		-drive format=raw,file=fat:rw:. \
+		-drive format=raw,file=fat:rw:./iso \
 		-boot d \
 		-audiodev pa,id=speaker -machine pcspk-audiodev=speaker \
 		-serial stdio

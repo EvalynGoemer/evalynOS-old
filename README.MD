@@ -9,6 +9,15 @@ You will need to install the following arch packages to compile (Non inclusive, 
 - qemu-desktop
 - edk2-ovmf
 - limine
+- mason
+- ninja
+- Dependancies for GCC & Binutils
+
+Run the script in `/src/libc/build-libc.sh` to build libc
+
+Delete the generated dot files to have the script recompile things if needed.
+
+Add `/src/libc/toolchain/usr/bin/` to your path aswell for things to compile right
 
 Compile with `make`
 

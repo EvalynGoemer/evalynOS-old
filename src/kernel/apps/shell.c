@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,31 +12,70 @@
 #include <memory/vmm.h>
 #include <scheduler/scheduler.h>
 #include <scheduler/switch.h>
+
+#include <elf/elf.h>
+
 #include "shell.h"
 
 void badapple_kthread() {
-    uintptr_t start_virtual = 0x4000;
-    size_t page_size = 0x1000;
-    size_t needed_mem = 16 * 1024 * 1024;
-
-    for (size_t i = start_virtual; i < start_virtual + needed_mem; i += page_size) {
-        uintptr_t pa = (uintptr_t)allocate_page();
-        vmm_map_page(get_current_thread()->pagemap, i, pa, PTE_PRESENT | PTE_USER | PTE_WRITABLE);
-    }
-
     uintptr_t stack_top = 0x80000000;
     size_t stack_size = 64 * 1024;
 
-    for (size_t i = stack_top; i > stack_top - stack_size; i -= page_size) {
+    for (size_t i = stack_top; i > stack_top - stack_size; i -= PAGE_SIZE) {
         uintptr_t pa = (uintptr_t)allocate_page();
         vmm_map_page(get_current_thread()->pagemap, i, pa, PTE_PRESENT | PTE_USER | PTE_WRITABLE);
     }
 
-    fs_read("/badapple.bin", (void *)0x4000, needed_mem);
+    uint64_t *stack = (uint64_t *)stack_top;
+
+    *--stack = 0; // alignment
+    *--stack = 0; // envp
+    *--stack = 0; // argv
+    *--stack = 0; // argc
+
+    stack_top = (uintptr_t)stack;
+
+    void* elf_file = malloc(16 * 1024 * 1024);
+
+    fs_read("/badapple.elf", elf_file, 16 * 1024 * 1024);
 
     asm volatile ("swapgs");
 
-    switch_to_user();
+    uint64_t start_addr = load_elf(elf_file);
+    if (start_addr != 0) {
+        printf("jumping to %lx\n", start_addr);
+        switch_to_user(start_addr, stack_top);
+    }
+}
+
+void libc_test_kthread() {
+    uintptr_t stack_top = 0x80000000;
+    size_t stack_size = 64 * 1024;
+
+    for (size_t i = stack_top; i > stack_top - stack_size; i -= PAGE_SIZE) {
+        uintptr_t pa = (uintptr_t)allocate_page();
+        vmm_map_page(get_current_thread()->pagemap, i, pa, PTE_PRESENT | PTE_USER | PTE_WRITABLE);
+    }
+
+    uint64_t *stack = (uint64_t *)stack_top;
+
+    *--stack = 0; // alignment
+    *--stack = 0; // envp
+    *--stack = 0; // argv
+    *--stack = 0; // argc
+
+    stack_top = (uintptr_t)stack;
+
+    void* elf_file = malloc(16 * 1024 * 1024);
+
+    fs_read("/hello_world.elf", elf_file, 16 * 1024 * 1024);
+
+    asm volatile ("swapgs");
+
+    uint64_t start_addr = load_elf(elf_file);
+    if (start_addr != 0) {
+        switch_to_user(start_addr, stack_top);
+    }
 }
 
 __attribute__((noinline))
@@ -120,6 +160,12 @@ void execute_commands(const char *cmd) {
         pagemap_t* pagemap = new_pagemap();
         create_thread(badapple_kthread, pagemap);
         printf("Started playing BAD APPLE in userspace\n");
+        return;
+    }
+    if (strcmp("HELLO", to_upper(cmd)) == 0) {
+        pagemap_t* pagemap = new_pagemap();
+        create_thread(libc_test_kthread, pagemap);
+        printf("Started playing HELLO WORLD in userspace\n");
         return;
     }
     if ((strcmp("CLEAR", to_upper(cmd)) == 0) || (strcmp("CLS", to_upper(cmd)) == 0)) {

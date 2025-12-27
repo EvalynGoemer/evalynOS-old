@@ -3,15 +3,6 @@
 
 #include <stdint.h>
 
-uint64_t __stack_chk_guard = 0xdeafbeef69420bad;
-
-__attribute__((noreturn))
-void __stack_chk_fail(void) {
-    while (1) {
-
-    }
-}
-
 static long syscall(int syscall_type, long a) {
     long ret;
     __asm__ volatile (
@@ -105,7 +96,6 @@ void drawFrame(const unsigned char* rleData, int rleLength, int frameWidth, int 
     }
 }
 
-int main() __attribute__((section(".entry")));
 int main() {
     int thread_id = get_id() - 1;
 

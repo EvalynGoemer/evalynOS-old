@@ -35,9 +35,8 @@ switch_to_user:
     mov gs, ax
 
     push 0x20 | 3
-    mov rax, USER_STACK_TOP
-    push rax
+    push rsi
     push 0x200
     push 0x28 | 3
-    push 0x4000
+    push rdi
     iretq

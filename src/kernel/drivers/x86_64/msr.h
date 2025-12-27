@@ -11,9 +11,10 @@ enum MSRs : uint32_t {
     CSTAR  = 0xC0000083,
     SFMASK = 0xC0000084,
 
-    // GS BASE
-    UGSBAS = 0xC0000101,
-    KGSBAS = 0xC0000102,
+    // Segment Register
+     FSBAS = 0xC0000100, // FS Base
+    UGSBAS = 0xC0000101, // User GS Base
+    KGSBAS = 0xC0000102, // Kernel GS Base
 };
 
 extern uint64_t rdmsr(uint32_t msr) ;

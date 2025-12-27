@@ -3,12 +3,15 @@
 #include <interupts/pit.h>
 #include <syscalls/syscalls.h>
 #include <memory/vmm.h>
+#include <memory/pmm.h>
 #include <drivers/x86_64/pit.h>
 #include <drivers/x86_64/pcskpr.h>
 #include <drivers/x86_64/msr.h>
 #include <drivers/x86_64/cpuid.h>
 #include <scheduler/scheduler.h>
 #include <stdio.h>
+
+#define ALIGN_UP(value, align) (((value) + (align) - 1) & ~((align) - 1))
 
 void init_syscall() {
     // enable syscall instruction
@@ -27,13 +30,34 @@ void execute_syscall(struct syscall_frame* frame) {
     switch (frame->rax) {
         // get thread id
         case 0:
-            frame->rax =get_current_thread()->threadId;
+            frame->rax = get_current_thread()->threadId;
             break;
         // HACK: THIS IS REALLY UNSAFE
         // print (set to panic for debugging)
         case 1:
             printf("%s", (char*)frame->rbx);
             frame->rax = 0;
+            break;
+        // write to FSBASE
+        case 2:
+            if (frame->rbx <= 0x00007FFFFFFFFFFF) {
+                wrmsr(FSBAS, frame->rbx);
+                frame->rax = 0;
+            } else {
+                frame->rax = -1;
+            }
+            break;
+        // WARNING: INCOMPLETE
+        // MMAP
+        case 3:
+            asm volatile ("nop");
+            frame->rax = get_current_thread()->heap_pos;
+            uint32_t heapPages = ALIGN_UP(frame->rbx, PAGE_SIZE) / PAGE_SIZE;
+            for (uint32_t i = 0; i < heapPages; i++) {
+                    vmm_map_page(get_current_thread()->pagemap, get_current_thread()->heap_pos, (uint64_t)allocate_page(), PTE_PRESENT | PTE_USER | PTE_WRITABLE | PTE_NX);
+                    get_current_thread()->heap_pos += PAGE_SIZE;
+            }
+            return;
             break;
         // play sound
         case 10:
