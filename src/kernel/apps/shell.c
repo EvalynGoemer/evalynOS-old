@@ -43,12 +43,11 @@ void badapple_kthread() {
 
     uint64_t start_addr = load_elf(elf_file);
     if (start_addr != 0) {
-        printf("jumping to %lx\n", start_addr);
         switch_to_user(start_addr, stack_top);
     }
 }
 
-void libc_test_kthread() {
+void helloWorld_kthread() {
     uintptr_t stack_top = 0x80000000;
     size_t stack_size = 64 * 1024;
 
@@ -69,6 +68,36 @@ void libc_test_kthread() {
     void* elf_file = malloc(16 * 1024 * 1024);
 
     fs_read("/hello_world.elf", elf_file, 16 * 1024 * 1024);
+
+    asm volatile ("swapgs");
+
+    uint64_t start_addr = load_elf(elf_file);
+    if (start_addr != 0) {
+        switch_to_user(start_addr, stack_top);
+    }
+}
+
+void doom_kthread() {
+    uintptr_t stack_top = 0x80000000;
+    size_t stack_size = 64 * 1024;
+
+    for (size_t i = stack_top; i > stack_top - stack_size; i -= PAGE_SIZE) {
+        uintptr_t pa = (uintptr_t)allocate_page();
+        vmm_map_page(get_current_thread()->pagemap, i, pa, PTE_PRESENT | PTE_USER | PTE_WRITABLE);
+    }
+
+    uint64_t *stack = (uint64_t *)stack_top;
+
+    *--stack = 0; // alignment
+    *--stack = 0; // envp
+    *--stack = 0; // argv
+    *--stack = 0; // argc
+
+    stack_top = (uintptr_t)stack;
+
+    void* elf_file = malloc(16 * 1024 * 1024);
+
+    fs_read("/doomgeneric.elf", elf_file, 16 * 1024 * 1024);
 
     asm volatile ("swapgs");
 
@@ -164,8 +193,17 @@ void execute_commands(const char *cmd) {
     }
     if (strcmp("HELLO", to_upper(cmd)) == 0) {
         pagemap_t* pagemap = new_pagemap();
-        create_thread(libc_test_kthread, pagemap);
-        printf("Started playing HELLO WORLD in userspace\n");
+        create_thread(helloWorld_kthread, pagemap);
+        printf("Started playing HELLO in userspace\n");
+        return;
+    }
+    if (strcmp("DOOM", to_upper(cmd)) == 0) {
+        pagemap_t* pagemap = new_pagemap();
+        create_thread(doom_kthread, pagemap);
+        printf("Started playing DOOM in userspace\n");
+        while (1) {
+
+        }
         return;
     }
     if ((strcmp("CLEAR", to_upper(cmd)) == 0) || (strcmp("CLS", to_upper(cmd)) == 0)) {

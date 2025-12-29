@@ -2,6 +2,12 @@
 #include <stdint.h>
 #include <memory/vmm.h>
 
+struct fd {
+    char* file_name;
+    void* file_data;
+    uint64_t seek_pos;
+};
+
 struct thread {
     int threadId;
 
@@ -14,7 +20,13 @@ struct thread {
 
     uint64_t heap_pos;
 
+    int next_fd;
+    struct fd* fds;
+
     int is_user_task;
+
+    uint64_t fsbase;
+    char fpu_state[512] __attribute__((aligned(16)));
 };
 
 struct thread_node {

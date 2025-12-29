@@ -587,13 +587,13 @@ index 0000000..f48c5b7
 +libc_include_dirs += include_directories('include')
 diff --git a/sysdeps/evalynos/sysdeps.cpp b/sysdeps/evalynos/sysdeps.cpp
 new file mode 100644
-index 0000000..84fdb08
+index 0000000..d9bbb73
 --- /dev/null
 +++ b/sysdeps/evalynos/sysdeps.cpp
-@@ -0,0 +1,110 @@
-+#include "mlibc/tcb.hpp"
+@@ -0,0 +1,208 @@
 +#include <abi-bits/errno.h>
 +#include <bits/ensure.h>
++#include <cstdint>
 +#include <mlibc/all-sysdeps.hpp>
 +#include <string.h>
 +
@@ -601,24 +601,68 @@ index 0000000..84fdb08
 +#define SYS_PRINT 1
 +#define SYS_SET_FSBASE 2
 +#define SYS_MMAP 3
++#define SYS_OPEN 4
++#define SYS_READ 5
++#define SYS_SEEK 6
 +
-+uint64_t syscall1(uint64_t syscall_type, uint64_t rbx) {
++
++uint64_t syscall1(uint64_t syscall_type, uint64_t arg1) {
 +    uint64_t ret;
++    register uint64_t rax asm("rax") = syscall_type;
++    register uint64_t rbx asm("rbx") = arg1;
++
 +    __asm__ volatile (
 +        "syscall"
 +        : "=a"(ret)
-+        : "a"(syscall_type), "b"(rbx)
++        : "r"(rax), "r"(rbx)
 +        : "rcx", "r11", "memory"
 +    );
 +    return ret;
 +}
 +
-+uint64_t syscall2(int syscall_type, uint64_t rbx, uint64_t rdx) {
++uint64_t syscall2(uint64_t syscall_type, uint64_t arg1, uint64_t arg2) {
 +    uint64_t ret;
++    register uint64_t rax asm("rax") = syscall_type;
++    register uint64_t rbx asm("rbx") = arg1;
++    register uint64_t rdx asm("rdx") = arg2;
++
 +    __asm__ volatile (
 +        "syscall"
 +        : "=a"(ret)
-+        : "rax"(syscall_type), "b"(rbx), "d"(rdx)
++        : "r"(rax), "r"(rbx), "r"(rdx)
++        : "rcx", "r11", "memory"
++    );
++    return ret;
++}
++
++uint64_t syscall3(uint64_t syscall_type, uint64_t arg1, uint64_t arg2, uint64_t arg3) {
++    uint64_t ret;
++    register uint64_t rax asm("rax") = syscall_type;
++    register uint64_t rbx asm("rbx") = arg1;
++    register uint64_t rdx asm("rdx") = arg2;
++    register uint64_t rsi asm("rsi") = arg3;
++
++    __asm__ volatile (
++        "syscall"
++        : "=a"(ret)
++        : "r"(rax), "r"(rbx), "r"(rdx), "r"(rsi)
++        : "rcx", "r11", "memory"
++    );
++    return ret;
++}
++
++uint64_t syscall4(uint64_t syscall_type, uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4) {
++    uint64_t ret;
++    register uint64_t rax asm("rax") = syscall_type;
++    register uint64_t rbx asm("rbx") = arg1;
++    register uint64_t rdx asm("rdx") = arg2;
++    register uint64_t rsi asm("rsi") = arg3;
++    register uint64_t rdi asm("rdi") = arg4;
++
++    __asm__ volatile (
++        "syscall"
++        : "=a"(ret)
++        : "r"(rax), "r"(rbx), "r"(rdx), "r"(rsi), "r"(rdi)
 +        : "rcx", "r11", "memory"
 +    );
 +    return ret;
@@ -651,15 +695,10 @@ index 0000000..84fdb08
 +    }
 +
 +    int sys_isatty(int fd) {
-+        (void)fd;
-+        return 0;
-+    }
-+
-+    int sys_write(int fd, void const *buf, size_t size, ssize_t *ret) {
-+        (void)fd;
-+        syscall_print((char *)buf);
-+        *ret = size;
-+        return 0;
++        if (fd == 0 || fd == 1 || fd == 2) {
++            return 0;
++        }
++        return ENOTTY;
 +    }
 +
 +    int sys_tcb_set(void *pointer) {
@@ -679,25 +718,84 @@ index 0000000..84fdb08
 +
 +    int sys_anon_free(void *, unsigned long) { return 0; }
 +
-+    int sys_seek(int , off_t , int , off_t *) {
-+        return ESPIPE;
++    int sys_open(const char *path, int flags, unsigned int mode, int *fd) {
++        (void)flags;
++        (void)mode;
++        int fdm = syscall1(SYS_OPEN, (uint64_t)path);
++
++        if (fdm > 10) {
++            *fd = fdm;
++            return 0;
++        }
++
++        return EACCES;
 +    }
 +
++    int sys_read(int fd, void *buffer, size_t count, ssize_t *bytes_read) {
++        if (fd == 0 || fd == 1 || fd == 2) {
++            return EINVAL;
++        }
++
++        int ret = syscall3(SYS_READ, fd, count, (uint64_t)buffer);
++        if (ret < 0) {
++            *bytes_read = -1;
++            return -ret;
++        }
++
++        *bytes_read = (ssize_t)ret;
++        return 0;
++    }
++
++    int sys_seek(int fd, off_t offset, int whence, off_t *new_offset) {
++        if (fd >= 0 && fd <= 2) {
++            return ESPIPE;
++        }
++
++        long ret = syscall3(SYS_SEEK, fd, offset, whence);
++
++        if (ret < 0) {
++            return -ret;
++        }
++
++        if (new_offset) {
++            *new_offset = (off_t)ret;
++        }
++        return 0;
++    }
++
++    int sys_write(int fd, void const *buf, size_t size, ssize_t *ret) {
++        if (fd == 0 || fd == 1 || fd == 2) {
++            syscall_print((char *)buf);
++            *ret = size;
++            return 0;
++        }
++        return EROFS;
++    }
++
++    int sys_close(int ) {
++        return 0;
++    }
++
++    int sys_mkdir(const char *, mode_t ) {
++        return -1;
++    }
++
++    int sys_futex_wake(int *) { STUB(); }
++    int sys_futex_wait(int *, int, timespec const *) { STUB(); }
++    int sys_vm_map(void *, size_t , int , int , int , off_t , void **) { STUB(); }
++    int sys_vm_unmap(void *, size_t) { STUB(); }
++    int sys_clock_get(int , time_t *, long *) { STUB(); }
++
 +    void sys_exit(int status) {
-+        (void)status;
++        if (status < 0) {
++            syscall_print("Exited with error");
++        } else {
++            syscall_print("Exited normally");
++        }
 +        while (1) {
 +
 +        }
 +        __builtin_unreachable();
 +    }
-+
-+    int sys_close(int ) { STUB(); }
-+    int sys_futex_wake(int *) { STUB(); }
-+    int sys_futex_wait(int *, int, timespec const *) { STUB(); }
-+    int sys_read(int, void *, unsigned long, long *) { STUB(); }
-+    int sys_open(const char *, int, unsigned int, int *) { STUB(); }
-+    int sys_vm_map(void *, size_t , int , int , int , off_t , void **) { STUB(); }
-+    int sys_vm_unmap(void *, size_t) { STUB(); }
-+    int sys_clock_get(int , time_t *, long *) { STUB(); }
 +
 +} // namespace mlibc

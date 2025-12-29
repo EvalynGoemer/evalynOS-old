@@ -1,0 +1,355 @@
+diff --git a/.gitignore b/.gitignore
+index 4ac2545..a357f7b 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -9,5 +9,6 @@
+ Debug/
+ Release/
+ Build/
+-doomgeneric
++doomgeneric.elf
+ doomgeneric.map
++doomgeneric.elf.map
+diff --git a/doomgeneric/Makefile.evalynos b/doomgeneric/Makefile.evalynos
+new file mode 100644
+index 0000000..79809b6
+--- /dev/null
++++ b/doomgeneric/Makefile.evalynos
+@@ -0,0 +1,53 @@
++################################################################
++#
++# $Id:$
++#
++# $Log:$
++#
++
++ifeq ($(V),1)
++	VB=''
++else
++	VB=@
++endif
++
++
++CC=x86_64-evalynos-gcc
++CFLAGS+=-ggdb3 -O2
++LDFLAGS+=-Wl,--gc-sections
++CFLAGS+=-ggdb3 -Wall
++LIBS+=-lm -lc
++
++OBJDIR=build
++OUTPUT=doomgeneric.elf
++
++SRC_DOOM = dummy.o am_map.o doomdef.o doomstat.o dstrings.o d_event.o d_items.o d_iwad.o d_loop.o d_main.o d_mode.o d_net.o f_finale.o f_wipe.o g_game.o hu_lib.o hu_stuff.o info.o i_cdmus.o i_endoom.o i_joystick.o i_scale.o i_sound.o i_system.o i_timer.o memio.o m_argv.o m_bbox.o m_cheat.o m_config.o m_controls.o m_fixed.o m_menu.o m_misc.o m_random.o p_ceilng.o p_doors.o p_enemy.o p_floor.o p_inter.o p_lights.o p_map.o p_maputl.o p_mobj.o p_plats.o p_pspr.o p_saveg.o p_setup.o p_sight.o p_spec.o p_switch.o p_telept.o p_tick.o p_user.o r_bsp.o r_data.o r_draw.o r_main.o r_plane.o r_segs.o r_sky.o r_things.o sha1.o sounds.o statdump.o st_lib.o st_stuff.o s_sound.o tables.o v_video.o wi_stuff.o w_checksum.o w_file.o w_main.o w_wad.o z_zone.o w_file_stdc.o i_input.o i_video.o doomgeneric.o doomgeneric_evalynos.o
++OBJS += $(addprefix $(OBJDIR)/, $(SRC_DOOM))
++
++all:	 $(OUTPUT)
++
++clean:
++	rm -rf $(OBJDIR)
++	rm -f $(OUTPUT)
++	rm -f $(OUTPUT).gdb
++	rm -f $(OUTPUT).map
++
++$(OUTPUT):	$(OBJS)
++	@echo [Linking $@]
++	$(VB)$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) \
++	-o $(OUTPUT) $(LIBS) -Wl,-Map,$(OUTPUT).map
++	@echo [Size]
++	-$(CROSS_COMPILE)size $(OUTPUT)
++
++$(OBJS): | $(OBJDIR)
++
++$(OBJDIR):
++	mkdir -p $(OBJDIR)
++
++$(OBJDIR)/%.o:	%.c
++	@echo [Compiling $<]
++	$(VB)$(CC) $(CFLAGS) -c $< -o $@
++
++print:
++	@echo OBJS: $(OBJS)
++
+diff --git a/doomgeneric/d_iwad.c b/doomgeneric/d_iwad.c
+index 508cc61..053b628 100644
+--- a/doomgeneric/d_iwad.c
++++ b/doomgeneric/d_iwad.c
+@@ -38,6 +38,8 @@ static const iwad_t iwads[] =
+     { "plutonia.wad", pack_plut, commercial, "Final Doom: Plutonia Experiment" },
+     { "tnt.wad",      pack_tnt,  commercial, "Final Doom: TNT: Evilution" },
+     { "doom.wad",     doom,      retail,     "Doom" },
++    { "/DOOM.WAD",     doom,      retail,     "Doom" },
++    { "/DOOM1.WAD",     doom,      retail,     "Doom Shareware" },
+     { "doom1.wad",    doom,      shareware,  "Doom Shareware" },
+     { "chex.wad",     pack_chex, shareware,  "Chex Quest" },
+     { "hacx.wad",     pack_hacx, commercial, "Hacx" },
+diff --git a/doomgeneric/doomgeneric_evalynos.c b/doomgeneric/doomgeneric_evalynos.c
+new file mode 100644
+index 0000000..9c6f9dd
+--- /dev/null
++++ b/doomgeneric/doomgeneric_evalynos.c
+@@ -0,0 +1,216 @@
++#include <stdint.h>
++#include <stdio.h>
++#include <string.h>
++
++#include "doomkeys.h"
++#include "doomgeneric.h"
++
++static long syscall(int syscall_type, long a) {
++    long ret;
++    __asm__ volatile (
++        "syscall"
++        : "=a"(ret)
++        : "a"(syscall_type), "b"(a)
++        : "rcx", "r11", "memory"
++    );
++    return ret;
++}
++
++int get_pit_cycles() {
++    return syscall(22, 0);
++}
++
++char get_key_press() {
++    return syscall(40, 0);
++}
++
++uint64_t frameBufferBase = 0x00000000A0000000; // setup_fb() makes the kernel map the frame buffer here
++uint32_t frameBufferPitch;
++
++void setup_fb() {
++    syscall(30, 0);
++}
++
++int get_pitch() {
++    return syscall(31, 0);
++}
++
++void plotPixel(int x, int y, int color) {
++    *((volatile uint32_t*)frameBufferBase + y * (frameBufferPitch >> 2) + x) = color;
++}
++
++uint32_t inital_ms;
++
++void DG_Init() {
++    setup_fb();
++    frameBufferPitch = get_pitch();
++
++    inital_ms = get_pit_cycles();
++
++    while (get_key_press()) {
++
++    }
++}
++
++#define KEYBUF_SIZE 64
++
++typedef struct {
++    unsigned char scancode;
++    int pressed;
++    int extended;
++} KeyEvent;
++
++static KeyEvent keybuf[KEYBUF_SIZE];
++static int keybuf_head = 0;
++static int keybuf_tail = 0;
++
++static int keybuf_empty(void) {
++    return keybuf_head == keybuf_tail;
++}
++
++static int keybuf_full(void) {
++    return ((keybuf_head + 1) % KEYBUF_SIZE) == keybuf_tail;
++}
++
++static void keybuf_push(unsigned char scancode, int pressed, int extended) {
++    if (keybuf_full())
++        return;
++
++    keybuf[keybuf_head].scancode = scancode;
++    keybuf[keybuf_head].pressed  = pressed;
++    keybuf[keybuf_head].extended  = extended;
++    keybuf_head = (keybuf_head + 1) % KEYBUF_SIZE;
++}
++
++static int keybuf_pop(KeyEvent* ev) {
++    if (keybuf_empty())
++        return 0;
++
++    *ev = keybuf[keybuf_tail];
++    keybuf_tail = (keybuf_tail + 1) % KEYBUF_SIZE;
++    return 1;
++}
++
++void pollKeyboard() {
++    unsigned char scancode = get_key_press();
++    if (!scancode)
++        return;
++
++    int extended = 0;
++
++    if (scancode == 0xE0) {
++        while ((scancode = get_key_press()) == 0) {}
++        extended = 1;
++    }
++
++    int pressed = !(scancode & 0x80);
++    scancode &= 0x7F;
++
++    keybuf_push(scancode, pressed, extended);
++}
++
++int DG_GetKey(int* pressed, unsigned char* doomKey) {
++    KeyEvent ev;
++
++    if (!keybuf_pop(&ev))
++        return 0;
++
++    *pressed = ev.pressed;
++
++    unsigned char scancode = ev.scancode;
++    int isExtended = ev.extended;
++
++    if (isExtended) {
++        switch (scancode) {
++            case 0x48: *doomKey = KEY_UPARROW;    return 1;
++            case 0x50: *doomKey = KEY_DOWNARROW;  return 1;
++            case 0x4B: *doomKey = KEY_LEFTARROW;  return 1;
++            case 0x4D: *doomKey = KEY_RIGHTARROW; return 1;
++            case 0x1D: *doomKey = KEY_RCTRL;      return 1;
++            case 0x38: *doomKey = KEY_RALT;       return 1;
++
++            default:                              return 0;
++        }
++    } else {
++        switch (scancode) {
++            case 0x01: *doomKey = KEY_ESCAPE;     return 1;
++            case 0x1C: *doomKey = KEY_ENTER;      return 1;
++            case 0x39: *doomKey = KEY_USE;        return 1;
++            case 0x1D: *doomKey = KEY_FIRE;       return 1;
++            case 0x38: *doomKey = KEY_LALT;       return 1;
++            case 0x2A: *doomKey = KEY_RSHIFT;     return 1;
++            case 0x36: *doomKey = KEY_RSHIFT;     return 1;
++            case 0x0F: *doomKey = KEY_TAB;        return 1;
++
++            case 0x02: *doomKey = '1';            return 1;
++            case 0x03: *doomKey = '2';            return 1;
++            case 0x04: *doomKey = '3';            return 1;
++            case 0x05: *doomKey = '4';            return 1;
++            case 0x06: *doomKey = '5';            return 1;
++            case 0x07: *doomKey = '6';            return 1;
++            case 0x08: *doomKey = '7';            return 1;
++            case 0x09: *doomKey = '8';            return 1;
++            case 0x0A: *doomKey = '9';            return 1;
++            case 0x0B: *doomKey = '0';            return 1;
++
++            case 0x0D: *doomKey = '=';            return 1;
++            case 0x0C: *doomKey = '-';            return 1;
++            case 0x21: *doomKey = 'f';            return 1;
++            case 0x32: *doomKey = 'm';            return 1;
++            case 0x2E: *doomKey = 'c';            return 1;
++            case 0x18: *doomKey = 'o';            return 1;
++
++            case 0x3B: *doomKey = KEY_F1;         return 1;
++            case 0x3C: *doomKey = KEY_F2;         return 1;
++            case 0x3D: *doomKey = KEY_F3;         return 1;
++            case 0x3E: *doomKey = KEY_F4;         return 1;
++            case 0x3F: *doomKey = KEY_F5;         return 1;
++            case 0x40: *doomKey = KEY_F6;         return 1;
++            case 0x41: *doomKey = KEY_F7;         return 1;
++            case 0x42: *doomKey = KEY_F8;         return 1;
++            case 0x43: *doomKey = KEY_F9;         return 1;
++            case 0x44: *doomKey = KEY_F10;        return 1;
++            case 0x57: *doomKey = KEY_F11;        return 1;
++            case 0x58: *doomKey = KEY_F12;        return 1;
++
++            default:                              return 0;
++        }
++    }
++}
++
++void DG_DrawFrame() {
++    pollKeyboard();
++    uint32_t *dstBase = (uint32_t *)frameBufferBase;
++    int dstStride = frameBufferPitch >> 2;
++
++    for (int y = 0; y < DOOMGENERIC_RESY; y++) {
++        uint32_t *dst = dstBase + (y * dstStride) + 600;
++        uint32_t *src = (uint32_t *)&DG_ScreenBuffer[y * DOOMGENERIC_RESX];
++        memcpy(dst, src, DOOMGENERIC_RESX * sizeof(uint32_t));
++    }
++}
++
++void DG_SleepMs(uint32_t ms) {
++    int start = get_pit_cycles();
++    int end = start + ms;
++    while (get_pit_cycles() < end) {
++    }
++}
++
++uint32_t DG_GetTicksMs() {
++    return get_pit_cycles() - inital_ms;
++}
++
++void DG_SetWindowTitle(const char * title) {
++    printf("Window Title: %s\n", title);
++}
++
++int main(int argc, char **argv) {
++    doomgeneric_Create(argc, argv);
++
++    while (1) {
++        doomgeneric_Tick();
++    }
++
++    return 0;
++}
+diff --git a/doomgeneric/doomtype.h b/doomgeneric/doomtype.h
+index a225c64..76032ed 100644
+--- a/doomgeneric/doomtype.h
++++ b/doomgeneric/doomtype.h
+@@ -33,7 +33,7 @@
+ #else
+ 
+ #include <strings.h>
+-
++#include <stdbool.h>
+ #endif
+ 
+ 
+@@ -62,18 +62,18 @@
+ 
+ #include <inttypes.h>
+ 
+-#ifdef __cplusplus
++#if defined(__cplusplus) || defined(__bool_true_false_are_defined)
+ 
+ // Use builtin bool type with C++.
+ 
+-typedef bool boolean;
++typedef int boolean;
+ 
+ #else
+ 
+ typedef enum 
+ {
+-    false	= 0,
+-    true	= 1,
++    // false	= 0,
++    // true	= 1,
+ 	undef	= 0xFFFFFFFF
+ } boolean;
+ 
+diff --git a/doomgeneric/i_system.c b/doomgeneric/i_system.c
+index 53ab2c9..c532ee9 100644
+--- a/doomgeneric/i_system.c
++++ b/doomgeneric/i_system.c
+@@ -271,7 +271,7 @@ void I_Quit (void)
+ 
+ static int ZenityAvailable(void)
+ {
+-    return system(ZENITY_BINARY " --help >/dev/null 2>&1") == 0;
++    return 0;
+ }
+ 
+ // Escape special characters in the given string so that they can be

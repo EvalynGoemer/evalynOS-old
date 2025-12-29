@@ -72,10 +72,22 @@ void kmain(void) {
         printf("Kernel: Hypervisor ID: %s\n", get_hypervisor_id());
     }
 
-    // Enable fxsave & fxstor instructions
+    // setup CR0
     __asm__ volatile (
         "mov %%cr4, %%rax\n"
-        "bts $9, %%rax\n" // fxsave & fxstor bit
+        "btr $2, %%rax\n"    // clear EM
+        "mov %%rax, %%cr4"
+        :
+        :
+        : "rax", "memory"
+    );
+
+    // setup CR4
+    __asm__ volatile (
+        "mov %%cr4, %%rax\n"
+        "bts $9, %%rax\n"    // set MP
+        "bts $9, %%rax\n"    // set OSFXSR
+        "bts $10, %%rax\n"   // set OSXMMEXCPT
         "mov %%rax, %%cr4"
         :
         :
@@ -115,7 +127,7 @@ void kmain(void) {
     printf("Kernel: PS/2 Keyboard Setup\n");
 
     setup_keyboard();
-    printf("Kernel: Keybard Glob Device Setup\n");
+    printf("Kernel: Keyboard Glob Device Setup\n");
 
     int status = init_tarfs();
     if(status == -1) {

@@ -26,17 +26,12 @@ PATH=$PATH:${TOOLCHAIN_DIR}/usr/bin
 CFLAGS_FOR_TARGET="-march=x86-64 -mabi-sysv"
 CXXFLAGS_FOR_TARGET="-march=x86-64 -mabi-sysv"
 
-if [ ! -e "${SRC_DIR}/.patched-mlibc" ]; then
-    git submodule init ./mlibc
-    pushd ${MLIBC_DIR}
-    if git apply --check ${PATCHES_DIR}/mlibc-evalynos.patch; then
-        git apply ${PATCHES_DIR}/mlibc-evalynos.patch
-    fi
-    popd
-    touch ${SRC_DIR}/.patched-mlibc
-else
-    echo "mlibc already patched"
+git submodule init ./mlibc
+pushd ${MLIBC_DIR}
+if git apply --check ${PATCHES_DIR}/mlibc-evalynos.patch; then
+    git apply ${PATCHES_DIR}/mlibc-evalynos.patch
 fi
+popd
 
 if [ ! -e "${SRC_DIR}/.got-binutils" ]; then
     wget -O "${SRC_DIR}/binutils-${BINUTILS_VER}.tar.xz" https://ftpmirror.gnu.org/binutils/binutils-${BINUTILS_VER}.tar.xz
@@ -141,7 +136,7 @@ if [ ! -e "${SRC_DIR}/.built-mlibc" ]; then
     popd
     touch ${SRC_DIR}/.built-mlibc
 else
-    echo "mlibc headers already built"
+    echo "mlibc already built"
 fi
 
 pushd ${MLIBC_DIR}

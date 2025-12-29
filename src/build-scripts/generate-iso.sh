@@ -2,6 +2,7 @@ set -e
 
 xorriso \
   -as mkisofs \
+  -V "EvalynOS"\
   -R \
   -r \
   -J \

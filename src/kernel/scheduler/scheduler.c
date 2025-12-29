@@ -30,6 +30,14 @@ void create_thread(void (*entry_point)(void*), pagemap_t *pagemap) {
     struct thread* new_thread = malloc(sizeof(struct thread));
     memset(new_thread, 0, sizeof(struct thread));
 
+    // HACK: 0 is reserved as stdout and libc redirects to the syscall
+    // TODO: init some FDs for things like stdio properly
+    new_thread->next_fd = 11;
+
+    // TODO: make this a dynamic array so it cant overflow :^)
+    new_thread->fds = malloc(256 * sizeof(struct fd));
+    memset(new_thread->fds, 0, 256 * sizeof(struct fd));
+
     new_thread->heap_pos = 0x00000000B0000000;
 
     new_thread->stack = malloc(STACK_SIZE);
@@ -90,6 +98,12 @@ void schedule() {
     vmm_switch_to(current_thread->pagemap);
 
     tss.rsp0 = (uint64_t)current_thread->stack_top;
+
+    asm volatile("fxsave %0 "::"m"(previous_thread->fpu_state));
+    asm volatile("fxrstor %0 "::"m"(current_thread->fpu_state));
+    previous_thread->fsbase = rdmsr(FSBAS);
+    wrmsr(FSBAS, current_thread->fsbase);
+
     wrmsr(UGSBAS, (uint64_t)current_thread);
 
     thread_switch(&previous_thread->krsp, current_thread->krsp);

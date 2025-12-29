@@ -1,6 +1,5 @@
 #include <string.h>
 #include <stdlib.h>
-#include <stdio.h>
 
 #include <utils/globals.h>
 #include <filesystem/filesystem.h>
@@ -43,6 +42,21 @@ int tarfsRead(char* path, char* return_data, int read_length) {
     return -1;
 }
 
+int tarfsGetFize(char* path) {
+    char tarPath[256];
+    tarPath[0] = '.';
+    strcpy(tarPath + 1, path);
+
+    unsigned char *ptr = archive;
+    while (!memcmp(ptr + 257, "ustar", 5)) {
+        int filesize = oct2bin(ptr + 0x7c, 11);
+        if (!memcmp(ptr, tarPath, strlen(tarPath) + 1)) {
+            return filesize;
+        }
+        ptr += (((filesize + 511) / 512) + 1) * 512;
+    }
+    return -1;
+}
 
 int tarfsWrite(__attribute__ ((unused)) char* path, __attribute__ ((unused)) char* write_data, __attribute__ ((unused))  int write_length) {
     return -1;
@@ -77,7 +91,6 @@ int init_tarfs() {
 
         ptr += (((filesize + 511) / 512) + 1) * 512;
     }
-
 
     return 0;
 }

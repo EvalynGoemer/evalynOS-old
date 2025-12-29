@@ -13,7 +13,8 @@
 #define PS2_STATUS_INPUT_BUFFER_FULL 0x02
 #define PS2_STATUS_OUTPUT_BUFFER_FULL 0x01
 
-volatile uint8_t ps2Kbd_buffer_index;
+volatile uint8_t ps2Kbd_buffer_head = 0;
+volatile uint8_t ps2Kbd_buffer_tail = 0;
 volatile char ps2Kbd_buffer[256] = {'\0'};
 
 static inline void io_wait() {
@@ -21,12 +22,19 @@ static inline void io_wait() {
 }
 
 int ps2KbdDeviceRead(__attribute__((unused)) char* path, char* return_data, int read_length) {
+    int bytes_read = 0;
+
     for (int i = 0; i < read_length; i++) {
-        return_data[i] = ps2Kbd_buffer[ps2Kbd_buffer_index];
-        ps2Kbd_buffer[ps2Kbd_buffer_index] = '\0';
-        ps2Kbd_buffer_index--;
+        if (ps2Kbd_buffer_head == ps2Kbd_buffer_tail) {
+            break;
+        }
+        return_data[i] = ps2Kbd_buffer[ps2Kbd_buffer_tail];
+        ps2Kbd_buffer_tail++;
+
+        bytes_read++;
     }
-    return 1;
+
+    return bytes_read;
 }
 
 int ps2KbdDeviceWrite(__attribute__((unused)) char* path, __attribute__((unused)) char* write_data, __attribute__((unused)) int write_length) {

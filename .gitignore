@@ -26,3 +26,6 @@ qemu_log.txt
 *.kate-swp
 *.zip
 *.tar.gz
+*.tar.xz
+*.WAD
+*.wad

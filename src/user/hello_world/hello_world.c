@@ -1,5 +1,6 @@
 #include <stdio.h>
 
-int main() {
-    printf("Hello from mlibc!!!! %x \n", 100);
+int main(void) {
+    printf("Hello from mlibc!!!\n");
+    return 0;
 }
