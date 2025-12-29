@@ -26,7 +26,7 @@ PATH=$PATH:${TOOLCHAIN_DIR}/usr/bin
 CFLAGS_FOR_TARGET="-march=x86-64 -mabi-sysv"
 CXXFLAGS_FOR_TARGET="-march=x86-64 -mabi-sysv"
 
-git submodule init ./mlibc
+git submodule update --init --recursive ./mlibc
 pushd ${MLIBC_DIR}
 if git apply --check ${PATCHES_DIR}/mlibc-evalynos.patch; then
     git apply ${PATCHES_DIR}/mlibc-evalynos.patch
