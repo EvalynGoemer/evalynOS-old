@@ -159,6 +159,11 @@ void execute_syscall(struct syscall_frame* frame) {
 
         frame->rax = new_pos;
         break;
+        // sleep ms
+        case 7:
+            get_current_thread()->sleep_awake_time = pitInteruptsTriggered + frame->rbx;
+            schedule();
+            break;
         // play sound
         case 10:
             play_sound(frame->rbx);

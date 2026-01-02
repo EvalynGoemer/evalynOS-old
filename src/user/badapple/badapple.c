@@ -22,6 +22,10 @@ void print(char* string) {
     syscall(1, (long)string);
 }
 
+void sleep_ms(long ms) {
+    syscall(7, ms);
+}
+
 void play_sound(long dx) {
     syscall(10, dx);
 }
@@ -97,21 +101,15 @@ void drawFrame(const unsigned char* rleData, int rleLength, int frameWidth, int 
 }
 
 int main() {
-    int thread_id = get_id() - 1;
-
+    int thread_id = get_id() - 2;
     setup_fb();
     frameBufferPitch = get_pitch();
 
     while (1) {
         int pit_base = get_pit_cycles();
-
         int audioSamplesPlayed = 0;
         int lastTick = 0;
-
         int frameIndex = 0;
-        int desiredFrame = 0;
-        int desiredFramePre = 0;
-
         int accum = 0;
 
         while (audioSamplesPlayed < audio_data_length) {
@@ -119,48 +117,46 @@ int main() {
 
             while (lastTick < currentTicks) {
                 accum += 140;
-
-                if (accum >= 1000) {
+                while (accum >= 1000) {
                     accum -= 1000;
 
-                    uint8_t bl = audio_data[audioSamplesPlayed];
-                    if (bl == 254) {
-                        stop_sound();
-                    } else if (bl != 0xFF) {
-                        play_sound(audio_to_pcspkr[bl]);
+                    if (audioSamplesPlayed < audio_data_length) {
+                        uint8_t bl = audio_data[audioSamplesPlayed];
+                        if (bl == 254) {
+                            stop_sound();
+                        } else if (bl != 0xFF) {
+                            play_sound(audio_to_pcspkr[bl]);
+                        }
+                        audioSamplesPlayed++;
                     }
-
-                    audioSamplesPlayed++;
-                    if (audioSamplesPlayed >= audio_data_length)
-                        break;
                 }
-
                 lastTick++;
             }
 
+            int desiredFrame;
             if (audioSamplesPlayed >= 15499) {
-                desiredFrame = ((audioSamplesPlayed - 15499) * 2) / 9 + desiredFramePre;
+                int pre = (15498 * 3) / 14 + 22;
+                desiredFrame = ((audioSamplesPlayed - 15499) * 2) / 9 + pre;
             } else {
                 desiredFrame = (audioSamplesPlayed * 3) / 14 + 22;
-                if (audioSamplesPlayed >= 15498) {
-                    desiredFramePre = desiredFrame;
-                }
             }
 
-            if (desiredFrame >= frame_count)
-                desiredFrame = frame_count;
+            if (desiredFrame >= frame_count) desiredFrame = frame_count - 1;
 
             if (desiredFrame != frameIndex) {
                 frameIndex = desiredFrame;
-                unsigned int start  = frame_offsets[frameIndex];
-                unsigned int end    = (frameIndex + 1 < frame_count) ? frame_offsets[frameIndex + 1] : start;
+                unsigned int start = frame_offsets[frameIndex];
+                unsigned int end   = (frameIndex + 1 < frame_count) ? frame_offsets[frameIndex + 1] : start;
                 unsigned int length = end - start;
 
                 drawFrame(&frames_rle[start], length, 120, 90, 650,
                           8 + (90 * 3 * thread_id), 3);
             }
-        }
 
+            if ((get_pit_cycles() - pit_base) <= currentTicks) {
+                sleep_ms(0);
+            }
+        }
         stop_sound();
     }
 }

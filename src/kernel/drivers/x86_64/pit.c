@@ -1,6 +1,7 @@
 #include <drivers/x86_64/pic.h>
 #include <drivers/x86_64/ports.h>
 #include <interupts/pit.h>
+#include <stdint.h>
 
 #define PIT_CONTROL_PORT 0x43
 #define PIT_CHANNEL0_PORT 0x40
@@ -13,11 +14,11 @@ static inline void io_wait() {
 
 int pitFrequency;
 void pit_sleep_ms(unsigned int ms) {
-    int startTicks = pitInteruptsTriggered;
-    int targetTicks = startTicks + (ms * pitFrequency) / 1000;
+    uint64_t startTicks = pitInteruptsTriggered;
+    uint64_t targetTicks = startTicks + (ms * pitFrequency) / 1000;
 
     while (pitInteruptsTriggered < targetTicks) {
-        int currentTicks = pitInteruptsTriggered;
+        uint64_t currentTicks = pitInteruptsTriggered;
 
         if (currentTicks < startTicks) {
             startTicks = currentTicks;

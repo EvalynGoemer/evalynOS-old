@@ -106,6 +106,9 @@ index 0000000..9c6f9dd
 +    return ret;
 +}
 +
++void sleep_ms(int ms) {
++    syscall(7, ms);
++}
 +int get_pit_cycles() {
 +    return syscall(22, 0);
 +}
@@ -281,10 +284,7 @@ index 0000000..9c6f9dd
 +}
 +
 +void DG_SleepMs(uint32_t ms) {
-+    int start = get_pit_cycles();
-+    int end = start + ms;
-+    while (get_pit_cycles() < end) {
-+    }
++    sleep_ms(ms);
 +}
 +
 +uint32_t DG_GetTicksMs() {

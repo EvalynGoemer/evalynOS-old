@@ -24,6 +24,7 @@ struct thread {
     struct fd* fds;
 
     int is_user_task;
+    uint64_t sleep_awake_time;
 
     uint64_t fsbase;
     char fpu_state[512] __attribute__((aligned(16)));

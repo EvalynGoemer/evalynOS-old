@@ -1,3 +1,4 @@
+#include "interupts/pit.h"
 #include <stdio.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -32,6 +33,13 @@
 #include <scheduler/scheduler.h>
 #include <scheduler/switch.h>
 #include <apps/shell.h>
+
+void idle_thread() {
+    while (1) {
+        asm("sti");
+        asm("hlt");
+    }
+}
 
 void kmain(void) {
     if (LIMINE_BASE_REVISION_SUPPORTED == false) {
@@ -157,7 +165,10 @@ void kmain(void) {
         pit_sleep_ms(1);
     }
 
+    // create_thread(idle_thread, NULL);
+    create_thread(idle_thread, NULL);
     create_thread(start_shell, NULL);
+    shouldSchedule = 1;
 
     while (1) {
         asm("hlt");

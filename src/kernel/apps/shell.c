@@ -236,6 +236,9 @@ void start_shell() {
     bool newLineStarted = true;
 
     while (1) {
+        // yeild
+        schedule();
+
         if (newLineStarted) {
             printf("\x1b[2K\r"); // ansi for clear line and return to start of line
             printf("Kernel Shell> ");
