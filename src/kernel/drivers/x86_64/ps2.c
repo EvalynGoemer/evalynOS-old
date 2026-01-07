@@ -98,6 +98,4 @@ void setup_ps2() {
     file->read = ps2KbdDeviceRead;
     file->write = ps2KbdDeviceWrite;
     register_file(file);
-
-    __asm__ __volatile__("sti");
 }

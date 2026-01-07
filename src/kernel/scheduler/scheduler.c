@@ -87,7 +87,6 @@ void create_thread(void (*entry_point)(void*), pagemap_t *pagemap) {
 }
 
 void schedule() {
-    asm volatile("cli");
     outb(0x20, 0x20);
 
     struct thread *previous_thread = threads->thread;

@@ -98,8 +98,6 @@ static uint64_t *vmm_get_next_level(uint64_t *current_level_virt, size_t index, 
 }
 
 bool vmm_map_page(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr, uint64_t flags) {
-    asm volatile("cli");
-
     virt_addr &= ~(PAGE_SIZE - 1);
     phys_addr &= ~(PAGE_SIZE - 1);
 
@@ -123,12 +121,10 @@ bool vmm_map_page(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr, 
 
     asm volatile("invlpg (%0)" ::"r"(virt_addr) : "memory");
 
-    asm volatile("sti");
     return true;
 
     fail:
     printf("Kernel: Failed to map page for virt %p\n", (void *)virt_addr);
-    asm volatile("sti");
     return false;
 }
 

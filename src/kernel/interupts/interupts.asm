@@ -3,7 +3,6 @@ extern dispatch_interupt
 %macro ISR 1
 global isr%1
 isr%1:
-    cli
     push 0
     push %1
     jmp dispatch_interupt_asm
@@ -12,7 +11,6 @@ isr%1:
 %macro ISR_ERR 1
 global isr%1
 isr%1:
-    cli
     push %1
     jmp dispatch_interupt_asm
 %endmacro

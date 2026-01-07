@@ -53,5 +53,4 @@ void setup_idt() {
     idtr.base = (uint64_t)&idt;
 
     asm volatile ("lidt %0" : : "m"(idtr));
-    asm volatile ("sti");
 }

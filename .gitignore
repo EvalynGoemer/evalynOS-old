@@ -5,6 +5,7 @@
 *.o
 *.so
 *.bin
+*.sys
 /obj*/
 /bin*/
 

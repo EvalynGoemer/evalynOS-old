@@ -11,6 +11,7 @@
 #include <misc/font8x8_basic.h>
 
 #include <utils/globals.h>
+#include <utils/panic.h>
 #include <drivers/x86_64/idt.h>
 #include <drivers/x86_64/gdt.h>
 #include <drivers/x86_64/pic.h>
@@ -36,7 +37,6 @@
 
 void idle_thread() {
     while (1) {
-        asm("sti");
         asm("hlt");
     }
 }
@@ -139,11 +139,7 @@ void kmain(void) {
 
     int status = init_tarfs();
     if(status == -1) {
-        printf("Kernel: Could not find initramfs.tar; HALTING");
-        while (1) {
-            __asm__ __volatile__("cli");
-            __asm__ __volatile__("hlt");
-        }
+        panic("Kernel: Could not find initramfs.tar");
     }
     printf("Kernel: tarFS as initramfs Mounted\n");
 

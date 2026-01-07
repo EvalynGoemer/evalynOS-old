@@ -180,8 +180,6 @@ void setup_pmm() {
 }
 
 void *allocate_page() {
-    asm volatile("cli");
-
     for (size_t i = 0; i <= highest_page; ++i) {
         if (!BITMAP_GET(i)) {
             BITMAP_SET(i);
@@ -193,13 +191,9 @@ void *allocate_page() {
 
             memset(vaddr, 0, PAGE_SIZE);
 
-            asm volatile("sti");
-
             return addr;
         }
     }
-
-    asm volatile("sti");
 
     panic("Kernel: Out of physical memory!\n");
     return NULL;

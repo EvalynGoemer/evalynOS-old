@@ -4,8 +4,6 @@ extern execute_syscall
 syscall_handler:
     swapgs
 
-    cli
-
     mov [gs:32], rsp
     mov rsp, [gs:24]
 
