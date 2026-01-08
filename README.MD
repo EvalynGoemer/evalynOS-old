@@ -38,7 +38,7 @@ This kernel is designed to be able to run on *REAL* hardware if it meets the fol
 - A PS/2 keyboard
 - A PC speaker
 
-Copy the `EFI` folder and `limine.conf` and `kernel.elf` and `initramfs.tar` to the root of a GPT formatted USB stick with the boot and esp flags set and then boot to it
+Flash the `evalynOS.iso` file to a usb with a command such as `dd if=./evalynOS.iso of=/dev/{USB_STICK}` and then it can be booted om any system.
 
 ## Kernel Mode Shell Commands
 - `TEST`: Prints a test message
@@ -49,3 +49,4 @@ Copy the `EFI` folder and `limine.conf` and `kernel.elf` and `initramfs.tar` to 
 - `PANIC`: Causes a kernel panic
 - `FAULT`: Causes a Page Fault to panic with extended info
 - `BADAPPLE`: Plays the Bad Apple demo inside userspace
+- `DOOM`: Starts doom in userspace
