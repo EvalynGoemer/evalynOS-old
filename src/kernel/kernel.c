@@ -47,11 +47,11 @@ void kmain(void) {
     }
 
     if (framebuffer_request.response == NULL
-     || framebuffer_request.response->framebuffer_count < 1) {
+        || framebuffer_request.response->framebuffer_count < 1) {
         __asm__ __volatile__("hlt");
-    }
+        }
 
-    framebuffer = framebuffer_request.response->framebuffers[0];
+        framebuffer = framebuffer_request.response->framebuffers[0];
     FB_WIDTH = framebuffer_request.response->framebuffers[0]->width;
     FB_HEIGHT = framebuffer_request.response->framebuffers[0]->height;
 
@@ -68,7 +68,7 @@ void kmain(void) {
         framebuffer_request.response->framebuffers[0]->blue_mask_size,
         framebuffer_request.response->framebuffers[0]->blue_mask_shift,
         NULL, NULL, NULL, NULL, NULL, NULL, NULL, (void*)font8x8_basic_ft,
-        8, 8, 1, 0, 0, 0
+                              8, 8, 1, 0, 0, 0
     );
 
     printf("\033c\033[2J\033[H");

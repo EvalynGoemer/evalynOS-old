@@ -36,13 +36,13 @@ void execute_syscall(struct syscall_frame* frame) {
         case 0:
             frame->rax = get_current_thread()->threadId;
             break;
-        // HACK: THIS IS REALLY UNSAFE
-        // print (set to panic for debugging)
+            // HACK: THIS IS REALLY UNSAFE
+            // print (set to panic for debugging)
         case 1:
             printf("%s", (char*)frame->rbx);
             frame->rax = 0;
             break;
-        // write to FSBASE
+            // write to FSBASE
         case 2:
             if (frame->rbx <= 0x00007FFFFFFFFFFF) {
                 wrmsr(FSBAS, frame->rbx);
@@ -51,18 +51,18 @@ void execute_syscall(struct syscall_frame* frame) {
                 frame->rax = -1;
             }
             break;
-        // WARNING: INCOMPLETE
-        // MMAP
+            // WARNING: INCOMPLETE
+            // MMAP
         case 3:
             asm volatile ("nop");
             frame->rax = get_current_thread()->heap_pos;
             uint32_t heapPages = ALIGN_UP(frame->rbx, PAGE_SIZE) / PAGE_SIZE;
             for (uint32_t i = 0; i < heapPages; i++) {
-                    vmm_map_page(get_current_thread()->pagemap, get_current_thread()->heap_pos, (uint64_t)allocate_page(), PTE_PRESENT | PTE_USER | PTE_WRITABLE | PTE_NX);
-                    get_current_thread()->heap_pos += PAGE_SIZE;
+                vmm_map_page(get_current_thread()->pagemap, get_current_thread()->heap_pos, (uint64_t)allocate_page(), PTE_PRESENT | PTE_USER | PTE_WRITABLE | PTE_NX);
+                get_current_thread()->heap_pos += PAGE_SIZE;
             }
             break;
-        // open
+            // open
         case 4:
             asm volatile ("nop");
             int size = tarfsGetFize((char*)frame->rbx);
@@ -83,7 +83,7 @@ void execute_syscall(struct syscall_frame* frame) {
             get_current_thread()->fds[get_current_thread()->next_fd] = *ofile;
             frame->rax = get_current_thread()->next_fd++;
             break;
-        // read
+            // read
         case 5:
             asm volatile ("nop");
 
@@ -117,7 +117,7 @@ void execute_syscall(struct syscall_frame* frame) {
 
             frame->rax = bytes;
             break;
-        // seek
+            // seek
         case 6:
             asm volatile ("nop");
 
@@ -164,31 +164,31 @@ void execute_syscall(struct syscall_frame* frame) {
             get_current_thread()->sleep_awake_time = pitInteruptsTriggered + frame->rbx;
             schedule();
             break;
-        // play sound
+            // play sound
         case 10:
             play_sound(frame->rbx);
             frame->rax = 0;
             break;
-        // stop sound
+            // stop sound
         case 11:
             stop_sound();
             frame->rax = 0;
             break;
-        // get pit cycles
+            // get pit cycles
         case 20:
             setup_pit(frame->rbx);
             frame->rax = 0;
             break;
-        // reset pit cycles
+            // reset pit cycles
         case 21:
             pitInteruptsTriggered = 0;
             frame->rax = 0;
             break;
-        // get pit cycles
+            // get pit cycles
         case 22:
             frame->rax = pitInteruptsTriggered;
             break;
-        // map framebuffer to 0x00000000A0000000 as write combining
+            // map framebuffer to 0x00000000A0000000 as write combining
         case 30:
             asm volatile ("nop");
             uint32_t total_bytes = framebuffer->pitch * framebuffer->height;
@@ -207,11 +207,11 @@ void execute_syscall(struct syscall_frame* frame) {
             }
             frame->rax = 0;
             break;
-        // get framebuffer pitch
+            // get framebuffer pitch
         case 31:
             frame->rax = framebuffer->pitch;
             break;
-        // get last ps/2 scancode
+            // get last ps/2 scancode
         case 40:
             asm volatile ("nop");
             char keyPressed[1] = {'\0'};

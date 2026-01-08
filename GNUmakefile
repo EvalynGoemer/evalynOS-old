@@ -64,8 +64,6 @@ override CFLAGS += \
     -std=gnu11 \
     -nostdinc \
     -ffreestanding \
-    -fstack-protector-all \
-    -fstack-check \
     -fno-lto \
     -fno-PIC \
     -ffunction-sections \

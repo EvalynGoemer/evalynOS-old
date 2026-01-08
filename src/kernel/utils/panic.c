@@ -193,10 +193,10 @@ void panic_interrupt_frame(char* message, struct interrupt_frame* frame) {
     printf("IP=0x%016lx SP=0x%016lx\n", frame->ip, frame->rsp);
     printf("SS=0x%016lx CS=0x%016lx\n", frame->ss, frame->cs);
     printf("FLAGS: %08b %08b %08b %08b\n",
-            (int)frame->flags >> 24 & 0xFF,
-            (int)frame->flags >> 16 & 0xFF,
-            (int)frame->flags >> 8  & 0xFF,
-            (int)frame->flags       & 0xFF);
+           (int)frame->flags >> 24 & 0xFF,
+           (int)frame->flags >> 16 & 0xFF,
+           (int)frame->flags >> 8  & 0xFF,
+           (int)frame->flags       & 0xFF);
 
     printf("ERROR: %08b %08b %08b %08b\n",
            (int)frame->error >> 24 & 0xFF,
@@ -356,7 +356,7 @@ void panic_interrupt_frame(char* message, struct interrupt_frame* frame) {
     printf("god damn it; \033[38;2;255;0;0mhalting;\033[?25l");
 
     #ifndef MUTE_KERNEL_PANIC
-        play_sound(1000);
+    play_sound(1000);
     #endif
 
     while (1) {

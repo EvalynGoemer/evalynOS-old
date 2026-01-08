@@ -12,7 +12,7 @@ enum MSRs : uint32_t {
     SFMASK = 0xC0000084,
 
     // Segment Register
-     FSBAS = 0xC0000100, // FS Base
+    FSBAS = 0xC0000100, // FS Base
     UGSBAS = 0xC0000101, // User GS Base
     KGSBAS = 0xC0000102, // Kernel GS Base
 };

@@ -234,10 +234,12 @@ void start_shell() {
     int typingBufferIndex = 0;
 
     bool newLineStarted = true;
+    bool noKeysLeft = false;
 
     while (1) {
-        // yeild
-        schedule();
+        if (noKeysLeft) {
+            schedule();
+        }
 
         if (newLineStarted) {
             printf("\x1b[2K\r"); // ansi for clear line and return to start of line
@@ -247,6 +249,12 @@ void start_shell() {
 
         char keyPressed[1] = {'\0'};
         fs_read("/dev/kbd", keyPressed, 1);
+
+        if (keyPressed[0] == '\0') {
+            noKeysLeft = true;
+        } else {
+            noKeysLeft = false;
+        }
 
         switch (keyPressed[0]) {
             case '\b':
