@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 SRC_DIR="./src/initramfs"
-OUT_FILE="./iso/initramfs.tar"
+OUT_FILE="./src/generated/iso/initramfs.tar"
 HASH_FILE="./src/generated/initramfs.hash"
 
 current_hash=$(find "$SRC_DIR" -type f -exec md5sum {} + | sort | md5sum | awk '{print $1}')

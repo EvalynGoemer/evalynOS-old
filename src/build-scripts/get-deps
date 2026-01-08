@@ -4,11 +4,11 @@ git submodule update --init --recursive
 
 set -e
 
-mkdir -p ./iso/EFI/BOOT
-cp /usr/share/limine/BOOTX64.EFI ./iso/EFI/BOOT/
-cp /usr/share/limine/limine-bios-cd.bin ./iso/
-cp /usr/share/limine/limine-uefi-cd.bin ./iso/
-cp /usr/share/limine/limine-bios.sys    ./iso
+mkdir -p ./src/generated/iso/EFI/BOOT
+cp /usr/share/limine/BOOTX64.EFI        ./src/generated/iso/EFI/BOOT/
+cp /usr/share/limine/limine-bios-cd.bin ./src/generated/iso/
+cp /usr/share/limine/limine-uefi-cd.bin ./src/generated/iso/
+cp /usr/share/limine/limine-bios.sys    ./src/generated/iso
 
 cp /usr/share/edk2/x64/OVMF_CODE.4m.fd .
 cp /usr/share/edk2/x64/OVMF_VARS.4m.fd .

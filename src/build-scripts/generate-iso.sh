@@ -16,7 +16,7 @@ xorriso \
   -efi-boot-part \
   --efi-boot-image \
   --protective-msdos-label \
-  ./iso \
+  ./src/generated/iso \
   -o evalynOS.iso
 
 limine bios-install evalynOS.iso

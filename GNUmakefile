@@ -151,14 +151,14 @@ run:
 	./src/build-scripts/generate-all.sh
 	make all -j${nproc}
 	./src/build-scripts/undo-patches.sh
-	cp ./bin-x86_64/kernel.elf ./iso/kernel.elf
+	cp ./bin-x86_64/kernel.elf ./src/generated/iso/kernel.elf
 	qemu-system-x86_64 \
 		-machine q35,accel=kvm \
-		-cpu host \
+		-cpu host,+x2apic \
 		-m 512M \
 		-drive if=pflash,format=raw,readonly=on,file=./OVMF_CODE.4m.fd \
 		-drive if=pflash,format=raw,readonly=on,file=./OVMF_VARS.4m.fd \
-		-drive format=raw,file=fat:rw:./iso \
+		-drive format=raw,file=fat:rw:./src/generated/iso \
 		-boot d \
 		-audiodev pa,id=speaker -machine pcspk-audiodev=speaker \
 		-serial stdio
@@ -176,7 +176,7 @@ debug:
 	make clean
 	make all -j${nproc}
 	./src/build-scripts/undo-patches.sh
-	cp ./bin-x86_64/kernel.elf ./iso/kernel.elf
+	cp ./bin-x86_64/kernel.elf ./src/generated/iso/kernel.elf
 	qemu-system-x86_64 \
 		-machine q35 \
 		-s -S \
@@ -184,7 +184,7 @@ debug:
 		-m 512M \
 		-drive if=pflash,format=raw,readonly=on,file=./OVMF_CODE.4m.fd \
 		-drive if=pflash,format=raw,readonly=on,file=./OVMF_VARS.4m.fd \
-		-drive format=raw,file=fat:rw:./iso \
+		-drive format=raw,file=fat:rw:./src/generated/iso \
 		-boot d \
 		-audiodev pa,id=speaker -machine pcspk-audiodev=speaker \
 		-serial stdio
