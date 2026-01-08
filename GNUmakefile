@@ -83,7 +83,7 @@ override CPPFLAGS := \
     -isystem deps/freestnd-c-hdrs/include \
     -isystem src/kernel/libc \
     $(CPPFLAGS) \
-    -DLIMINE_API_REVISION=3 \
+    -DLIMINE_API_REVISION=4 \
     -MMD \
     -MP
 

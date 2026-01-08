@@ -1,9 +1,9 @@
 #include "interupts/pit.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <stdbool.h>
 
-#define LIMINE_API_REVISION 3
 #include <limine.h>
 
 #include <flanterm.h>
@@ -42,14 +42,15 @@ void idle_thread() {
 }
 
 void kmain(void) {
-    if (LIMINE_BASE_REVISION_SUPPORTED == false) {
+    if (LIMINE_BASE_REVISION_SUPPORTED(limine_base_revision) == false) {
         __asm__ __volatile__("hlt");
+
     }
 
     if (framebuffer_request.response == NULL
         || framebuffer_request.response->framebuffer_count < 1) {
         __asm__ __volatile__("hlt");
-        }
+    }
 
         framebuffer = framebuffer_request.response->framebuffers[0];
     FB_WIDTH = framebuffer_request.response->framebuffers[0]->width;
@@ -70,6 +71,7 @@ void kmain(void) {
         NULL, NULL, NULL, NULL, NULL, NULL, NULL, (void*)font8x8_basic_ft,
                               8, 8, 1, 0, 0, 0
     );
+
 
     printf("\033c\033[2J\033[H");
     printf("Kernel: Kernel Started\n");
