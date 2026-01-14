@@ -63,10 +63,12 @@ ISR_ERR 0x0E           ; PF
 ISR     0x20           ; PIT
 ISR     0x21           ; PS/2
 ISR     0x24           ; Serial #1 & #3
+ISR     0x30           ; APIC Timer
 
 ; Spurious Interupts
 ISR     0x27           ; Spurious PIC1
 ISR     0x2F           ; Spurious PIC2
+ISR     0xFF           ; Spurious APIC
 
 ; Others
 ISR     0x16           ; Reserved (Used as placeholder for generic)

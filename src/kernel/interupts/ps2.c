@@ -1,3 +1,5 @@
+#include "drivers/x86_64/irq.h"
+#include "drivers/x86_64/pic.h"
 #include <stdbool.h>
 
 #include <drivers/x86_64/ports.h>
@@ -60,5 +62,6 @@ void ps2_isr() {
         ps2Kbd_buffer_head = next_head;
     }
 
-    outb(0x20,0x20);
+    send_eoi();
+    pic_send_eoi(1);
 }

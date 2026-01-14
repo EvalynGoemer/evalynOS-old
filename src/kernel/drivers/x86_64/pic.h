@@ -13,6 +13,4 @@
 #define ICW4_8086    0x01
 
 extern void setup_pic(int offset1, int offset2);
-extern void irq_set_mask(uint8_t IRQline);
-extern void irq_clear_mask(uint8_t IRQline);
-extern void unmask_irq(unsigned char irq);
+extern void pic_send_eoi(uint8_t irq);

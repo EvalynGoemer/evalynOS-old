@@ -15,6 +15,24 @@ struct cpuid_regs cpuid(uint32_t leaf, uint32_t subleaf) {
     return regs;
 }
 
+int cpuid_standard_supported(uint32_t leaf) {
+    struct cpuid_regs r = cpuid(CPUID_GET_MAX_STANDARD, 0);
+    if (r.eax < leaf) {
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
+int cpuid_extended_supported(uint32_t leaf) {
+    struct cpuid_regs r = cpuid(CPUID_GET_MAX_EXTENDED, 0);
+    if (r.eax < leaf) {
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
 int cpu_feature_bit(uint32_t leaf, uint32_t subleaf, char reg, int bit) {
     if (bit < 0 || bit > 31) return 0;
     struct cpuid_regs r = cpuid(leaf, subleaf);

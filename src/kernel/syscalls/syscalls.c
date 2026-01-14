@@ -1,11 +1,10 @@
 #include <stdint.h>
 
-#include <interupts/pit.h>
 #include <string.h>
 #include <syscalls/syscalls.h>
 #include <memory/vmm.h>
 #include <memory/pmm.h>
-#include <drivers/x86_64/pit.h>
+#include <drivers/timer.h>
 #include <drivers/x86_64/pcskpr.h>
 #include <drivers/x86_64/msr.h>
 #include <drivers/x86_64/cpuid.h>
@@ -28,6 +27,8 @@ void init_syscall() {
 
     wrmsr(LSTAR, (uint64_t)syscall_handler);
     wrmsr(SFMASK, ~0x2);
+
+    printf("SYSCALL: Syscalls setup\n");
 }
 
 void execute_syscall(struct syscall_frame* frame) {
@@ -37,7 +38,7 @@ void execute_syscall(struct syscall_frame* frame) {
             frame->rax = get_current_thread()->threadId;
             break;
             // HACK: THIS IS REALLY UNSAFE
-            // print (set to panic for debugging)
+            // print
         case 1:
             printf("%s", (char*)frame->rbx);
             frame->rax = 0;
@@ -112,9 +113,6 @@ void execute_syscall(struct syscall_frame* frame) {
             memcpy((void*)frame->rsi, rfile.file_data + rfile.seek_pos, bytes);
             rfile.seek_pos += bytes;
             get_current_thread()->fds[frame->rbx] = rfile;
-
-            // printf("read %lx bytes from %s at offset %lx\n", bytes, rfile.file_name, rfile.seek_pos - bytes);
-
             frame->rax = bytes;
             break;
             // seek
@@ -154,14 +152,11 @@ void execute_syscall(struct syscall_frame* frame) {
         sfile.seek_pos = new_pos;
 
         get_current_thread()->fds[frame->rbx] = sfile;
-
-        // printf("fd: %lx file name: %s seeking to: %lx\n", frame->rbx, sfile.file_name, new_pos);
-
         frame->rax = new_pos;
         break;
         // sleep ms
         case 7:
-            get_current_thread()->sleep_awake_time = pitInteruptsTriggered + frame->rbx;
+            get_current_thread()->sleep_awake_time = timer_get_ms() + frame->rbx;
             schedule();
             break;
             // play sound
@@ -175,18 +170,8 @@ void execute_syscall(struct syscall_frame* frame) {
             frame->rax = 0;
             break;
             // get pit cycles
-        case 20:
-            setup_pit(frame->rbx);
-            frame->rax = 0;
-            break;
-            // reset pit cycles
-        case 21:
-            pitInteruptsTriggered = 0;
-            frame->rax = 0;
-            break;
-            // get pit cycles
         case 22:
-            frame->rax = pitInteruptsTriggered;
+            frame->rax = timer_get_ms();
             break;
             // map framebuffer to 0x00000000A0000000 as write combining
         case 30:

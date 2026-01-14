@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -27,4 +28,6 @@ void setup_tty() {
     file->read = ttyDeviceRead;
     file->write = ttyDeviceWrite;
     register_file(file);
+
+    printf("TTY: TTY device setup at /dev/term/tty\n");
 }

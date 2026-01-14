@@ -2,6 +2,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <stdbool.h>
 
 volatile uint8_t keyboard_buffer_index;
@@ -26,4 +27,6 @@ void setup_keyboard() {
     file->read = kbdDeviceRead;
     file->write = kbdDeviceWrite;
     register_file(file);
+
+    printf("KEYBOARD: Keyboard Glob Device Setup\n");
 }

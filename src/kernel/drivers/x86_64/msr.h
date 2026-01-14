@@ -2,6 +2,26 @@
 #include <stdint.h>
 
 enum MSRs : uint32_t {
+    // LAPIC
+    APIC_BASE = 0x0000001B,
+
+    // x2APIC
+    x2APIC_ID    = 0x00000802,
+    x2APIC_EOI   = 0x0000080B,
+    x2APIC_SVR   = 0x0000080F,
+
+    // x2APIC Timer
+    x2APIC_TIMER        = 0x00000832,
+    x2APIC_TIMER_LINT0  = 0x00000835,
+    x2APIC_TIMER_LINT1  = 0x00000836,
+    x2APIC_TIMER_ICOUNT = 0x00000838,
+    x2APIC_TIMER_CCOUNT = 0x00000839,
+    x2APIC_TIMER_DIVIDE = 0x0000083E,
+
+    // TSC
+    TSC          = 0x00000010,
+    TSC_DEADLINE = 0x000006E0,
+
     // Extended Feature Enable Register
     EFER   = 0xC0000080,
 
@@ -12,7 +32,7 @@ enum MSRs : uint32_t {
     SFMASK = 0xC0000084,
 
     // Segment Register
-    FSBAS = 0xC0000100, // FS Base
+    FSBAS =  0xC0000100,  // FS Base
     UGSBAS = 0xC0000101, // User GS Base
     KGSBAS = 0xC0000102, // Kernel GS Base
 };

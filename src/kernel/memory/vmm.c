@@ -39,7 +39,8 @@
 
 // Modified by Evalyn Goemer to work with EvalynOS
 
-#define ALIGN_UP(value, align) (((value) + (align) - 1) & ~((align) - 1))
+#define ALIGN_UP(x, align) ((((uintptr_t) (x)) + ((align) - 1)) & ~((uintptr_t) ((align) - 1)))
+#define ALIGN_DOWN(x, align) (((uintptr_t) (x)) & ~((uintptr_t) ((align) - 1)))
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -83,7 +84,7 @@ static uint64_t *vmm_get_next_level(uint64_t *current_level_virt, size_t index, 
 
     void *next_level_phys = allocate_page();
     if (next_level_phys == NULL) {
-        printf("Kernel: Failed to allocate page for new page table level (index %u)\n", (unsigned)index);
+        printf("VMM: Failed to allocate page for new page table level (index %u)\n", (unsigned)index);
         return NULL;
     }
 
@@ -124,13 +125,13 @@ bool vmm_map_page(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr, 
     return true;
 
     fail:
-    printf("Kernel: Failed to map page for virt %p\n", (void *)virt_addr);
+    printf("VMM: Failed to map page for virt %p\n", (void *)virt_addr);
     return false;
 }
 
 bool vmm_unmap_page(pagemap_t *pagemap, uintptr_t virt_addr) {
     if (virt_addr % PAGE_SIZE != 0) {
-        printf("Kernel: vmm_unmap_page called with non-aligned virt %p\n", (void *)virt_addr);
+        printf("VMM: vmm_unmap_page called with non-aligned virt %p\n", (void *)virt_addr);
         return false;
     }
 
@@ -228,7 +229,7 @@ uintptr_t vmm_virt_to_phys(pagemap_t *pagemap, uintptr_t virt_addr) {
 
 void vmm_switch_to(pagemap_t *pagemap) {
     if (!pagemap || !pagemap->top_level) {
-        panic("Attempted to switch to an invalid pagemap\n");
+        panic("VMM: Attempted to switch to an invalid pagemap\n");
         return;
     }
 
@@ -237,20 +238,26 @@ void vmm_switch_to(pagemap_t *pagemap) {
     asm volatile("mov %0, %%cr3" ::"r"(pml4_phys) : "memory");
 }
 
+void vmm_map_pages_continuous(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr, size_t page_count, uint64_t flags) {
+    for(size_t i = 0; i < page_count; i++) {
+        vmm_map_page(pagemap, virt_addr + (i * PAGE_SIZE), phys_addr + (i * PAGE_SIZE), flags);
+    }
+}
+
 void setup_vmm() {
     if (hhdm_request.response == NULL) {
-        panic("HHDM request response missing\n");
+        panic("VMM: HHDM request response missing\n");
     }
     if (executable_address_request.response == NULL) {
-        panic("Kernel Address request response missing\n");
+        panic("VMM: Kernel Address request response missing\n");
     }
     if (memmap_request.response == NULL) {
-        panic("Memory Map request response missing\n");
+        panic("VMM: Memory Map request response missing\n");
     }
 
     void *pml4_phys = allocate_page();
     if (pml4_phys == NULL) {
-        panic("Failed to allocate kernel PML4 table page\n");
+        panic("VMM: Failed to allocate kernel PML4 table page\n");
     }
     uint64_t *pml4_virt = (uint64_t *)((uintptr_t)pml4_phys + VMM_HIGHER_HALF);
     memset(pml4_virt, 0, PAGE_SIZE);
@@ -290,47 +297,27 @@ void setup_vmm() {
         }
 
         if (!vmm_map_page(kernel_pagemap, p_virt, p_phys, flags)) {
-            panic("Failed to map kernel page\n");
+            panic("VMM: Failed to map kernel page\n");
         }
     }
 
     struct limine_memmap_response *memmap = memmap_request.response;
+    bool hypervisor = cpu_feature_bit(1, 0, 'c', CPUID_HYPERVISOR);
     for (size_t i = 0; i < memmap->entry_count; i++) {
         struct limine_memmap_entry *entry = memmap->entries[i];
-
         uintptr_t base = entry->base;
-        uintptr_t top = base + entry->length;
-        uintptr_t map_base = ALIGN_UP(base, PAGE_SIZE);
-        uintptr_t map_top = top & ~(PAGE_SIZE - 1);
-
-        if (map_top <= map_base) continue;
-
-        for (uintptr_t p = map_base; p < map_top; p += PAGE_SIZE) {
-            if (!vmm_map_page(kernel_pagemap, p + VMM_HIGHER_HALF, p, PTE_PRESENT | PTE_WRITABLE | PTE_NX)) {
-                panic("Failed to map HHDM page");
-            }
+        uintptr_t map_base = ALIGN_DOWN(base, PAGE_SIZE);
+        uintptr_t page_count = ALIGN_UP(entry->length, PAGE_SIZE) / 4096;
+        uint64_t flags = PTE_PRESENT | PTE_WRITABLE | PTE_NX;
+        if (!hypervisor && entry->type == LIMINE_MEMMAP_FRAMEBUFFER) {
+            flags |= PTE_PCD | PTE_PAT;
         }
+        vmm_map_pages_continuous(kernel_pagemap, map_base + VMM_HIGHER_HALF, map_base, page_count, flags);
     }
-
-    // remap frame buffer as write combining if on phsyical hardware
-    if (!cpu_feature_bit(1, 0, 'c', CPUID_HYPERVISOR)) {
-        printf("Kernel: Running on physical machine; Enabling WC on Framebuffer\n");
-        uint32_t total_bytes = framebuffer->pitch * framebuffer->height;
-        uint16_t pages = (total_bytes + PAGE_SIZE - 1) / PAGE_SIZE;
-        uint64_t virt_addr = (uint64_t)framebuffer->address;
-        uint64_t phys_addr = ((uint64_t)framebuffer->address - hhdm_request.response->offset);
-        for (uint16_t i = 0; i < pages; i++) {
-            vmm_map_page(kernel_pagemap, virt_addr, phys_addr, PTE_PRESENT | PTE_WRITABLE | PTE_PCD | PTE_PAT);
-            asm volatile("invlpg (%0)" :: "r"(virt_addr) : "memory");
-            virt_addr += 0x1000;
-            phys_addr += 0x1000;
-        }
-    } else {
-        printf("Kernel: Running on virtual machine; Not Enabling WC on Framebuffer\n");
-    }
-
 
     vmm_switch_to(kernel_pagemap);
+
+    printf("VMM: Virtual Memory Manager Setup\n");
 }
 
 pagemap_t *new_pagemap() {

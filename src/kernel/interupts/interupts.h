@@ -9,8 +9,11 @@
 #define INTERRUPT_HANDLER_PS2 0x21
 #define INTERRUPT_HANDLER_SERIAL 0x24
 
+#define INTERRUPT_HANDLER_APIC_TIMER 0x30
+
 #define INTERRUPT_HANDLER_SPURIOUS_PIC_1 0x27
 #define INTERRUPT_HANDLER_SPURIOUS_PIC_2 0x2F
+#define INTERRUPT_HANDLER_SPURIOUS_APIC  0xFF
 
 #define INTERRUPT_HANDLER_SYSCALL 0x69
 
@@ -21,9 +24,11 @@ extern void isr0x0E();
 extern void isr0x20();
 extern void isr0x21();
 extern void isr0x24();
+extern void isr0x30();
 
 extern void isr0x27();
 extern void isr0x2F();
+extern void isr0xFF();
 
 // Reserved Exception (Used as placeholder for generic)
 extern void isr0x16();
@@ -40,7 +45,6 @@ extern void dispatch_interupt (struct interrupt_frame *frame);
 #include <interupts/double_fault.h>
 #include <interupts/gp_fault.h>
 #include <interupts/page_fault.h>
-#include <interupts/pit.h>
 #include <interupts/ps2.h>
 #include <interupts/spurious.h>
 #include <interupts/generic.h>

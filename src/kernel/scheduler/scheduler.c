@@ -1,5 +1,6 @@
-#include "interupts/pit.h"
-#include "stddef.h"
+#include <drivers/x86_64/apic/apic.h>
+#include <drivers/timer.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -87,13 +88,11 @@ void create_thread(void (*entry_point)(void*), pagemap_t *pagemap) {
 }
 
 void schedule() {
-    outb(0x20, 0x20);
-
     struct thread *previous_thread = threads->thread;
     threads = threads->next_thread;
     struct thread *current_thread = threads->thread;
 
-    while (threads->thread->sleep_awake_time > pitInteruptsTriggered) {
+    while (threads->thread->sleep_awake_time > timer_get_ms()) {
         threads = threads->next_thread;
         current_thread = threads->thread;
     }

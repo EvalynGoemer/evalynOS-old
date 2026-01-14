@@ -64,7 +64,7 @@ override CFLAGS += \
     -std=gnu11 \
     -nostdinc \
     -ffreestanding \
-    -fno-lto \
+    -fstack-protector-all \
     -fno-PIC \
     -ffunction-sections \
     -fdata-sections \
@@ -150,13 +150,34 @@ run:
 	make all -j${nproc}
 	./src/build-scripts/undo-patches.sh
 	cp ./bin-x86_64/kernel.elf ./src/generated/iso/kernel.elf
+	./src/build-scripts/generate-iso.sh
 	qemu-system-x86_64 \
-		-machine q35,accel=kvm \
-		-cpu host,+x2apic \
+		-machine q35,accel=kvm,smm=on \
+		-cpu host,+x2apic,+invtsc \
 		-m 512M \
 		-drive if=pflash,format=raw,readonly=on,file=./OVMF_CODE.4m.fd \
 		-drive if=pflash,format=raw,readonly=on,file=./OVMF_VARS.4m.fd \
-		-drive format=raw,file=fat:rw:./src/generated/iso \
+		-cdrom ./evalynOS.iso \
+		-boot d \
+		-audiodev pa,id=speaker -machine pcspk-audiodev=speaker \
+		-serial stdio
+
+.PHONY: tcg
+tcg:
+	./src/build-scripts/get-deps
+	./src/build-scripts/apply-patches.sh
+	make clean
+	./src/build-scripts/generate-all.sh
+	make all -j${nproc}
+	./src/build-scripts/undo-patches.sh
+	cp ./bin-x86_64/kernel.elf ./src/generated/iso/kernel.elf
+	./src/build-scripts/generate-iso.sh
+	qemu-system-x86_64 \
+		-machine q35,accel=tcg \
+		-m 512M \
+		-drive if=pflash,format=raw,readonly=on,file=./OVMF_CODE.4m.fd \
+		-drive if=pflash,format=raw,readonly=on,file=./OVMF_VARS.4m.fd \
+		-cdrom ./evalynOS.iso \
 		-boot d \
 		-audiodev pa,id=speaker -machine pcspk-audiodev=speaker \
 		-serial stdio
@@ -169,20 +190,21 @@ debug:
 	make genclean
 	./src/build-scripts/generate-all.sh
 	make all -j${nproc}
-	cp ./bin-x86_64/kernel.elf ./iso/kernel.elf
+	cp ./bin-x86_64/kernel.elf ./src/generated/iso/kernel.elf
 	./src/build-scripts/generate-symbols.py
 	make clean
 	make all -j${nproc}
 	./src/build-scripts/undo-patches.sh
 	cp ./bin-x86_64/kernel.elf ./src/generated/iso/kernel.elf
+	./src/build-scripts/generate-iso.sh
 	qemu-system-x86_64 \
 		-machine q35 \
 		-s -S \
-		-M accel=tcg,smm=off -d int -no-reboot -no-shutdown -D qemu_log.txt\
+		-M accel=tcg,smm=on -d int -no-reboot -no-shutdown -D qemu_log.txt \
 		-m 512M \
 		-drive if=pflash,format=raw,readonly=on,file=./OVMF_CODE.4m.fd \
 		-drive if=pflash,format=raw,readonly=on,file=./OVMF_VARS.4m.fd \
-		-drive format=raw,file=fat:rw:./src/generated/iso \
+		-cdrom ./evalynOS.iso \
 		-boot d \
 		-audiodev pa,id=speaker -machine pcspk-audiodev=speaker \
 		-serial stdio

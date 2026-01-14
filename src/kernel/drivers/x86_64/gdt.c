@@ -1,5 +1,6 @@
 #include <drivers/x86_64/gdt.h>
 #include <stdint.h>
+#include <stdio.h>
 
 __attribute__ ((aligned (16))) uint8_t kernel_stack[4096];
 
@@ -54,4 +55,6 @@ void setup_gdt() {
     lgdt(&gdtr);
     reloadSegments();
     ltr(0x30);
+
+    printf("GDT: GDT Setup\n");
 }

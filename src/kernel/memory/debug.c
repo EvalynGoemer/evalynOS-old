@@ -37,6 +37,7 @@ void printMemoryMap() {
         switch (memmap_request.response->entries[i]->type) {
             case LIMINE_MEMMAP_USABLE:                  type_str = "Usable"; break;
             case LIMINE_MEMMAP_RESERVED:                type_str = "Reserved"; break;
+            case LIMINE_MEMMAP_ACPI_TABLES:             type_str = "ACPI Tables"; break;
             case LIMINE_MEMMAP_ACPI_RECLAIMABLE:        type_str = "ACPI Reclaimable"; break;
             case LIMINE_MEMMAP_ACPI_NVS:                type_str = "ACPI NVS"; break;
             case LIMINE_MEMMAP_BAD_MEMORY:              type_str = "Bad Memory"; break;

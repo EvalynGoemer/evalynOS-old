@@ -1,8 +1,9 @@
 #include <drivers/x86_64/serial.h>
-#include <drivers/x86_64/pic.h>
+#include <drivers/x86_64/irq.h>
 #include <drivers/x86_64/ports.h>
 #include <filesystem/filesystem.h>
 
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -36,15 +37,18 @@ void setup_serial() {
     outb(SERIAL_PORT + 3, 0x03); // set 8N1 mode
     outb(SERIAL_PORT + 2, 0x07); // set FIFO with 1 byte threshold
     outb(SERIAL_PORT + 4, 0x0B); // enable the irqs
+
     outb(SERIAL_PORT + 4, 0x1E); // enable loopback for testing
     outb(SERIAL_PORT + 0, 0x69); // send test byte
-
     if(inb(SERIAL_PORT + 0) != 0x69) {
+        printf("SERIAL: Failed to init; Do you lack a serial port at I/O port 0x3F8?\n");
         serial_works = false;
         return;
     }
-
     outb(SERIAL_PORT + 4, 0x0F); // disable loopback
+
+    printf("SERIAL: Setup serial on I/O port 0x3F8\n");
+
     serial_works = true;
 
     unmask_irq(4);

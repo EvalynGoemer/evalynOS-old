@@ -1,5 +1,8 @@
 #include "interupts/spurious.h"
 #include <interupts/interupts.h>
+#include <drivers/x86_64/timers/pit.h>
+#include <drivers/x86_64/apic/apic.h>
+#include <drivers/timer.h>
 
 void dispatch_interupt (struct interrupt_frame *frame) {
     if (frame->cs & 0x3) {
@@ -17,7 +20,7 @@ void dispatch_interupt (struct interrupt_frame *frame) {
             page_fault_isr(frame);
             break;
         case INTERRUPT_HANDLER_PIT:
-            pit_isr();
+            // pit_isr();
             break;
         case INTERRUPT_HANDLER_PS2:
             ps2_isr();
@@ -25,10 +28,12 @@ void dispatch_interupt (struct interrupt_frame *frame) {
         case INTERRUPT_HANDLER_SERIAL:
             serial_isr();
             break;
-        case INTERRUPT_HANDLER_SPURIOUS_PIC_1:
-            spurious_isr();
+        case INTERRUPT_HANDLER_APIC_TIMER:
+            apic_timer_isr();
             break;
+        case INTERRUPT_HANDLER_SPURIOUS_PIC_1:
         case INTERRUPT_HANDLER_SPURIOUS_PIC_2:
+        case INTERRUPT_HANDLER_SPURIOUS_APIC:
             spurious_isr();
             break;
         default:

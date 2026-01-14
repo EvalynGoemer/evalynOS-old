@@ -1,10 +1,11 @@
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include <filesystem/filesystem.h>
 #include <drivers/x86_64/ports.h>
-#include <drivers/x86_64/pic.h>
-#include <drivers/x86_64/pit.h>
+#include <drivers/x86_64/irq.h>
+#include <drivers/timer.h>
 
 #define PS2_DATA_PORT 0x60
 #define PS2_STATUS_PORT 0x64
@@ -79,7 +80,7 @@ void setup_ps2() {
             response = inb(PS2_DATA_PORT);
             if (response == 0xFA) break;
         }
-        pit_sleep_ms(1);
+        timer_blocking_sleep_ms(1);
     }
 
     outb(PS2_DATA_PORT, 0xF0);
@@ -98,4 +99,6 @@ void setup_ps2() {
     file->read = ps2KbdDeviceRead;
     file->write = ps2KbdDeviceWrite;
     register_file(file);
+
+    printf("PS/2: PS/2 Keyboard Setup\n");
 }

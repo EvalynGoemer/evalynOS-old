@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdio.h>
 
 #include <interupts/interupts.h>
 
@@ -45,12 +46,16 @@ void setup_idt() {
     set_idt_entry(INTERRUPT_HANDLER_PIT, 0, 0x8E, (void (*)())isr0x20);
     set_idt_entry(INTERRUPT_HANDLER_PS2, 0, 0x8E, (void (*)())isr0x21);
     set_idt_entry(INTERRUPT_HANDLER_SERIAL, 0, 0x8E, (void (*)())isr0x24);
+    set_idt_entry(INTERRUPT_HANDLER_APIC_TIMER, 0, 0x8E, (void (*)())isr0x30);
 
     set_idt_entry(INTERRUPT_HANDLER_SPURIOUS_PIC_1, 0, 0x8E, (void (*)())isr0x27);
     set_idt_entry(INTERRUPT_HANDLER_SPURIOUS_PIC_2, 0, 0x8E, (void (*)())isr0x2F);
+    set_idt_entry(INTERRUPT_HANDLER_SPURIOUS_APIC,  0, 0x8E, (void (*)())isr0xFF);
 
     idtr.limit = sizeof(idt) - 1;
     idtr.base = (uint64_t)&idt;
 
     asm volatile ("lidt %0" : : "m"(idtr));
+
+    printf("IDT: IDT Setup\n");
 }

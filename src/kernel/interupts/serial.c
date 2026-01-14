@@ -1,3 +1,5 @@
+#include "drivers/x86_64/irq.h"
+#include <drivers/x86_64/pic.h>
 #include <drivers/x86_64/ports.h>
 #include <drivers/x86_64/serial.h>
 #include <drivers/keyboard.h>
@@ -16,5 +18,6 @@ void serial_isr() {
         }
     }
 
-    outb(0x20,0x20);
+    pic_send_eoi(4);
+    send_eoi();
 }

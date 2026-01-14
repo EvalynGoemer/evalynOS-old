@@ -1,6 +1,8 @@
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
+#include <utils/panic.h>
 #include <utils/globals.h>
 #include <filesystem/filesystem.h>
 #include <filesystem/tarfs/tarfs.h>
@@ -72,6 +74,7 @@ int init_tarfs() {
     }
 
     if(archive == NULL) {
+        panic("TARFS: Could not find initramfs.tar");
         return -1;
     }
 
@@ -92,5 +95,6 @@ int init_tarfs() {
         ptr += (((filesize + 511) / 512) + 1) * 512;
     }
 
+    printf("TARFS: initramfas Mounted\n");
     return 0;
 }

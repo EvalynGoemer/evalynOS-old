@@ -110,7 +110,7 @@ void setup_pmm() {
     for (size_t i = 0; i < entry_count; i++) {
         struct limine_memmap_entry *entry = entries[i];
 
-        if (entry->type == LIMINE_MEMMAP_USABLE || entry->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE) {
+        if (entry->type == LIMINE_MEMMAP_USABLE) {
             uintptr_t base = ALIGN_UP(entry->base, PAGE_SIZE);
             uintptr_t top = (entry->base + entry->length) & ~(PAGE_SIZE - 1);
 
@@ -177,6 +177,8 @@ void setup_pmm() {
     }
 
     used_pages = total_ram_pages - free_pages;
+
+    printf("PMM: Physical Memory Manager Setup\n");
 }
 
 void *allocate_page() {
@@ -195,13 +197,13 @@ void *allocate_page() {
         }
     }
 
-    panic("Kernel: Out of physical memory!\n");
+    panic("PMM: Out of physical memory!\n");
     return NULL;
 }
 
 void free_page(void *page) {
     if (page == NULL) {
-        printf("Kernel: PMM free_page called with NULL pointer\n");
+        printf("PMM: PMM free_page called with NULL pointer\n");
         asm volatile("" ::: "memory");
         return;
     }
@@ -209,19 +211,19 @@ void free_page(void *page) {
     uintptr_t addr = (uintptr_t)page;
 
     if (addr % PAGE_SIZE != 0) {
-        printf("Kernel: PMM free_page called with non-page-aligned physical address %lx\n", (uint64_t)page);
+        printf("PMM: PMM free_page called with non-page-aligned physical address %lx\n", (uint64_t)page);
         return;
     }
 
     size_t index = addr / PAGE_SIZE;
 
     if (index > highest_page) {
-        printf("Kernel: PMM free_page called with physical address %lx outside managed range (max index %lu)\n", (uint64_t)page, highest_page);
+        printf("PMM: PMM free_page called with physical address %lx outside managed range (max index %lu)\n", (uint64_t)page, highest_page);
         return;
     }
 
     if (!BITMAP_GET(index)) {
-        printf("Kernel: PMM free_page called on already free page %lx (index %lu)\n", (uint64_t)page, index);
+        printf("PMM: PMM free_page called on already free page %lx (index %lu)\n", (uint64_t)page, index);
         return;
     }
 

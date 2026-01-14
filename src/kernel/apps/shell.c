@@ -5,7 +5,6 @@
 #include <stdlib.h>
 
 #include <utils/panic.h>
-#include <drivers/x86_64/pit.h>
 #include <filesystem/filesystem.h>
 #include <memory/debug.h>
 #include <memory/pmm.h>
@@ -164,7 +163,7 @@ void execute_commands(const char *cmd) {
                         printf("Press any key to continute");
                         nextLineMessagePrinted = true;
                     }
-                    pit_sleep_ms(10);
+                    schedule();
                     fs_read("/dev/kbd", keyPressed, 1);
                 }
 
@@ -202,7 +201,7 @@ void execute_commands(const char *cmd) {
         create_thread(doom_kthread, pagemap);
         printf("Started playing DOOM in userspace\n");
         while (1) {
-
+            schedule();
         }
         return;
     }

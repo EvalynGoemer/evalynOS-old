@@ -1,5 +1,3 @@
-#include "interupts/pit.h"
-#include <stdint.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -15,15 +13,22 @@
 #include <drivers/x86_64/idt.h>
 #include <drivers/x86_64/gdt.h>
 #include <drivers/x86_64/pic.h>
-#include <drivers/x86_64/pit.h>
 #include <drivers/x86_64/ps2.h>
+#include <drivers/x86_64/timers/tsc.h>
+#include <drivers/x86_64/timers/pit.h>
+#include <drivers/x86_64/apic/apic.h>
+#include <drivers/x86_64/apic/ioapic.h>
 #include <drivers/x86_64/serial.h>
 #include <drivers/x86_64/cpuid.h>
+#include <drivers/x86_64/irq.h>
 #include <drivers/tty.h>
+#include <drivers/timer.h>
 #include <drivers/keyboard.h>
 #include <drivers/fb_renderer.h>
 #include <interupts/interupts.h>
 #include <syscalls/syscalls.h>
+
+#include <acpi/acpi.h>
 
 #include <memory/pmm.h>
 #include <memory/vmm.h>
@@ -74,12 +79,12 @@ void kmain(void) {
 
 
     printf("\033c\033[2J\033[H");
-    printf("Kernel: Kernel Started\n");
+    printf("KERNEL: Kernel Started\n");
 
-    printf("Kernel: CPU Vendor: %s\n", get_cpu_vendor());
-    printf("Kernel: CPU Name: %s\n", get_cpu_name());
+    printf("KERNEL: CPU Vendor: %s\n", get_cpu_vendor());
+    printf("KERNEL: CPU Name: %s\n", get_cpu_name());
     if (cpu_feature_bit(1, 0, 'c', CPUID_HYPERVISOR)) {
-        printf("Kernel: Hypervisor ID: %s\n", get_hypervisor_id());
+        printf("KERNEL: Hypervisor ID: %s\n", get_hypervisor_id());
     }
 
     // setup CR0
@@ -106,53 +111,32 @@ void kmain(void) {
 
     setup_gdt();
     setup_idt();
-    printf("Kernel: Basic GDT & IDT Setup\n");
-
-    setup_pic(0x20, 0x28);
-    printf("Kernel: PIC Setup\n");
-
-    setup_pit(1000);
-    printf("Kernel: PIT Setup\n");
 
     setup_pmm();
-    printf("Kernel: Physical Memory Manager Setup\n");
-
     setup_vmm();
-    printf("Kernel: Virtual Memory Manager Setup\n");
-
     setup_heap();
-    printf("Kernel: Heap Setup\n");
+
+    setup_acpi();
+    setup_irqs();
+    setup_timer();
+    setup_apic();
 
     setup_tty();
-    printf("Kernel: TTY Init\n");
-
     setup_serial();
-    if (serial_works) {
-        printf("Kernel: Serial Setup\n");
-    } else {
-        printf("Kernel: Failed To Setup Serial\n");
-    }
-
     setup_ps2();
-    printf("Kernel: PS/2 Keyboard Setup\n");
-
     setup_keyboard();
-    printf("Kernel: Keyboard Glob Device Setup\n");
 
-    int status = init_tarfs();
-    if(status == -1) {
-        panic("Kernel: Could not find initramfs.tar");
-    }
-    printf("Kernel: tarFS as initramfs Mounted\n");
+    init_tarfs();
 
     char readBuf[512];
-    status = fs_read("/test.txt", readBuf, 512);
-    printf("Kernel: Printing \"test.txt\" from initramfs: %s", readBuf);
+    int status = fs_read("/test.txt", readBuf, 512);
+    if (status > 0) {
+        printf("KERNEL: Testing tarfs by printing \"test.txt\" from initramfs: %s", readBuf);
+    }
 
     init_syscall();
-    printf("Kernel: SYSCALL Instruction Setup\n");
 
-    printf("Kernel: Press Enter to Start the Builtin Kernel Test CLI\n");
+    printf("KERNEL: Press Enter to Start the Builtin Kernel Test CLI\n");
     int enterPressed = 0;
     while (!enterPressed) {
         char keyPressed[1];
@@ -160,10 +144,9 @@ void kmain(void) {
         if (keyPressed[0] == '\n' || keyPressed[0] == '\r') {
             enterPressed = 1;
         }
-        pit_sleep_ms(1);
+        timer_blocking_sleep_ms(1);
     }
 
-    // create_thread(idle_thread, NULL);
     create_thread(idle_thread, NULL);
     create_thread(start_shell, NULL);
     shouldSchedule = 1;
