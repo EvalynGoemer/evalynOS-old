@@ -63,6 +63,7 @@ override CFLAGS += \
     -Wextra \
     -std=gnu11 \
     -nostdinc \
+    -flto \
     -ffreestanding \
     -fstack-protector-all \
     -fno-PIC \

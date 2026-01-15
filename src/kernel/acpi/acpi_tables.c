@@ -15,12 +15,12 @@ uint32_t ioapic_count = 0;
 
 bool acpi_verify_rsdp() {
     if (!rsdp_request.response->address) {
-        printf("ACPI: ACPI: No RSDP Found\n");
+        printf("ACPI: No RSDP Found\n");
         return false;
     }
 
     struct RSDP* rsdp = (struct RSDP*)rsdp_request.response->address;
-    printf("ACPI: ACPI: RSDP found at %p rev %d\n", rsdp, rsdp->revision);
+    printf("ACPI: RSDP found at %p rev %d\n", rsdp, rsdp->revision);
     uint64_t checksumV1 = 0;
     uint8_t *bytes = (uint8_t *)rsdp;
     for (size_t i = 0; i < sizeof(struct RSDP); i++) {
@@ -28,7 +28,7 @@ bool acpi_verify_rsdp() {
     }
 
     if ((uint8_t)checksumV1 != 0) {
-        printf("ACPI: ACPI: RSDP ChecksumV1 is bad\n");
+        printf("ACPI: RSDP ChecksumV1 is bad\n");
     }
 
     if (rsdp->revision != 2) {
@@ -41,7 +41,7 @@ bool acpi_verify_rsdp() {
     }
 
     if ((uint8_t)checksumV2 != 0) {
-        printf("ACPI: ACPI: RSDP ChecksumV2 is bad\n");
+        printf("ACPI: RSDP ChecksumV2 is bad\n");
     }
 
     return true;
@@ -108,7 +108,7 @@ void acpi_parse_fadt() {
                 acpi_timer_address_type = ACPI_ADDRESS_TYPE_PORT_IO;
                 printf("ACPI: Found ACPI Timer on I/O port 0x%lx\n", fadt->xPMTimerBlock.address);
             } else {
-                printf("ACPI: ACPI Time on bad address space type %d\n",fadt->xPMTimerBlock.address_space_id);
+                printf("ACPI: ACPI Timer on bad address space type %d\n",fadt->xPMTimerBlock.address_space_id);
             }
         } else {
             acpi_timer_address = fadt->pmTimerBlock;
