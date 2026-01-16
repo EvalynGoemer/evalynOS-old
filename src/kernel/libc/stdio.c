@@ -1,3 +1,5 @@
+#include "drivers/x86_64/ports.h"
+#include "drivers/x86_64/cpuid.h"
 #include <utils/globals.h>
 #include <drivers/x86_64/serial.h>
 
@@ -18,20 +20,26 @@
 #define NANOPRINTF_USE_ALT_FORM_FLAG 1
 #include <nanoprintf.h>
 
-int printf(const char* fmt, ...) {
-    char buf[256] = {'\0'};
-    va_list args;
-    va_start(args, fmt);
-    npf_vsnprintf(buf, 256, fmt, args);
-    va_end(args);
+void internal_putc(int c, void *_) {
+    char ch = (char)c;
 
-    flanterm_write(ft_ctx, buf, 256);
+    flanterm_write(ft_ctx, &ch, 1);
 
-    if(serial_works) {
-        write_serial(buf, 256);
+    if (cpu_feature_bit(1, 0, 'c', CPUID_HYPERVISOR)) {
+        outb(0xE9, ch);
     }
 
-    return 0;
+    if(serial_works) {
+        write_serial(&ch, 1);
+    }
+}
+
+int printf(const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    int ret = npf_vpprintf(internal_putc, NULL, fmt, args);
+    va_end(args);
+    return ret;
 }
 
 int snprintf(char *buf, size_t size, const char *fmt, ...) {

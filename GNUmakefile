@@ -154,14 +154,15 @@ run:
 	./src/build-scripts/generate-iso.sh
 	qemu-system-x86_64 \
 		-machine q35,accel=kvm,smm=on \
-		-cpu host,+x2apic,+invtsc \
+		-cpu host,+x2apic,+invtsc,+pdpe1gb \
 		-m 512M \
 		-drive if=pflash,format=raw,readonly=on,file=./OVMF_CODE.4m.fd \
 		-drive if=pflash,format=raw,readonly=on,file=./OVMF_VARS.4m.fd \
 		-cdrom ./evalynOS.iso \
-		-boot d \
+		-boot d -no-reboot -no-shutdown \
 		-audiodev pa,id=speaker -machine pcspk-audiodev=speaker \
-		-serial stdio
+		-chardev stdio,id=debugcon \
+		-device isa-debugcon,chardev=debugcon
 
 .PHONY: tcg
 tcg:
@@ -181,7 +182,8 @@ tcg:
 		-cdrom ./evalynOS.iso \
 		-boot d \
 		-audiodev pa,id=speaker -machine pcspk-audiodev=speaker \
-		-serial stdio
+		-chardev stdio,id=debugcon \
+		-device isa-debugcon,chardev=debugcon
 
 .PHONY: debug
 debug:
@@ -208,7 +210,8 @@ debug:
 		-cdrom ./evalynOS.iso \
 		-boot d \
 		-audiodev pa,id=speaker -machine pcspk-audiodev=speaker \
-		-serial stdio
+		-chardev stdio,id=debugcon \
+		-device isa-debugcon,chardev=debugcon
 
 # Remove object files and the final executable.
 .PHONY: clean

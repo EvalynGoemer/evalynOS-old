@@ -97,9 +97,9 @@ void acpi_parse_fadt() {
         if (fadt->xPMTimerBlock.address != 0) {
             if (fadt->xPMTimerBlock.address_space_id == ACPI_ADDRESS_TYPE_MMIO) {
                 acpi_timer_address = fadt->xPMTimerBlock.address + hhdm_request.response->offset;
-                vmm_map_page(kernel_pagemap, acpi_timer_address, fadt->xPMTimerBlock.address,
+                vmm_map_page(&kernel_pagemap, acpi_timer_address, fadt->xPMTimerBlock.address,
                              PTE_PRESENT | PTE_WRITABLE | PTE_NX | PTE_PCD | PTE_PWT);
-                vmm_map_page(kernel_pagemap, acpi_timer_address + PAGE_SIZE, fadt->xPMTimerBlock.address + PAGE_SIZE,
+                vmm_map_page(&kernel_pagemap, acpi_timer_address + PAGE_SIZE, fadt->xPMTimerBlock.address + PAGE_SIZE,
                              PTE_PRESENT | PTE_WRITABLE | PTE_NX | PTE_PCD | PTE_PWT);
                 acpi_timer_address_type = ACPI_ADDRESS_TYPE_MMIO;
                 printf("ACPI: Found ACPI Timer at %08lx\n", fadt->xPMTimerBlock.address);
@@ -125,9 +125,9 @@ void acpi_parse_hpet() {
 
     if (hpet) {
         hpet_address = hpet->address.address + hhdm_request.response->offset;
-        vmm_map_page(kernel_pagemap, hpet_address, hpet->address.address,
+        vmm_map_page(&kernel_pagemap, hpet_address, hpet->address.address,
                      PTE_PRESENT | PTE_WRITABLE | PTE_NX | PTE_PCD | PTE_PWT);
-        vmm_map_page(kernel_pagemap, hpet_address + PAGE_SIZE, hpet->address.address + PAGE_SIZE,
+        vmm_map_page(&kernel_pagemap, hpet_address + PAGE_SIZE, hpet->address.address + PAGE_SIZE,
                      PTE_PRESENT | PTE_WRITABLE | PTE_NX | PTE_PCD | PTE_PWT);
         printf("ACPI: Found HPET at 0x%08lx\n", hpet->address.address);
     }
@@ -159,9 +159,9 @@ void acpi_parse_madt() {
             case MADT_TYPE_IOAPIC: {
                 struct MADT_ioapic* ioapic = (struct MADT_ioapic*)ptr;
                 uint64_t ioapic_address = ioapic->ioapic_address + hhdm_request.response->offset;
-                vmm_map_page(kernel_pagemap, ioapic_address, ioapic->ioapic_address,
+                vmm_map_page(&kernel_pagemap, ioapic_address, ioapic->ioapic_address,
                              PTE_PRESENT | PTE_WRITABLE | PTE_NX | PTE_PCD | PTE_PWT);
-                vmm_map_page(kernel_pagemap, ioapic_address + PAGE_SIZE,
+                vmm_map_page(&kernel_pagemap, ioapic_address + PAGE_SIZE,
                              ioapic->ioapic_address + PAGE_SIZE, PTE_PRESENT | PTE_WRITABLE | PTE_NX | PTE_PCD | PTE_PWT);
 
                 struct ioapic_t* ioapic_struct = malloc(sizeof(struct ioapic_t));

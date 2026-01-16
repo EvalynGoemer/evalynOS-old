@@ -53,7 +53,7 @@ void create_thread(void (*entry_point)(void*), pagemap_t *pagemap) {
         new_thread->pagemap = pagemap;
         new_thread->is_user_task = 1;
     } else {
-        new_thread->pagemap = kernel_pagemap;
+        new_thread->pagemap = &kernel_pagemap;
         new_thread->is_user_task = 0;
     }
 

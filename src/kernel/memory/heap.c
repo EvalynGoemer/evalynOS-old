@@ -80,10 +80,7 @@ int heap_expand_pages(size_t pages) {
             return 0;
         }
         uintptr_t virt = base + (i * PAGE_SIZE);
-        if (!vmm_map_page(kernel_pagemap, virt, (uintptr_t)phys, PTE_PRESENT | PTE_WRITABLE | PTE_NX)) {
-            panic("heap_expand_pages: vmm_map_page failed");
-            return 0;
-        }
+        vmm_map_page(&kernel_pagemap, virt, (uintptr_t)phys, PTE_PRESENT | PTE_WRITABLE | PTE_NX);
     }
 
     heap_free_block_t *new_block = (heap_free_block_t *)base;

@@ -91,7 +91,7 @@ Too Long For this document
 See: https://github.com/ozkl/doomgeneric/blob/master/LICENSE For licence text
 --------------------------------------------------------------------------------
 Components:
-- Memory Managment
+- Heap
 - PS/2 Init Code
 
 https://codeberg.org/NerdNextDoor/arikoto

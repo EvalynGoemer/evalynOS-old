@@ -30,3 +30,5 @@ qemu_log.txt
 *.tar.xz
 *.WAD
 *.wad
+*.hashes
+*.sig
