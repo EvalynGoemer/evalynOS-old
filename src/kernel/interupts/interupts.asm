@@ -33,7 +33,10 @@ dispatch_interupt_asm:
     push r15
 
     mov rdi, rsp
+
+    sti
     call dispatch_interupt
+    cli
 
     pop r15
     pop r14

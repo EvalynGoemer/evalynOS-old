@@ -24,7 +24,10 @@ syscall_handler:
     push r15
 
     mov rdi, rsp
+
+    sti
     call execute_syscall
+    cli
 
     pop r15
     pop r14
