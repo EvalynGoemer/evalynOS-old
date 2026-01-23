@@ -126,6 +126,8 @@ int panic_count = 0;
 
 __attribute__((noreturn))
 void panic_interrupt_frame(char* message, struct interrupt_frame* frame) {
+    __asm__ __volatile__("cli");
+
     unsigned long cr0, cr2, cr3, cr4, cr8;
     struct descriptor_table_ptr gdtr, idtr;
     unsigned short ldt, tr;

@@ -8,6 +8,7 @@
 #include <syscalls/files/files.h>
 
 #include <drivers/x86_64/msr.h>
+#include <drivers/x86_64/rflags.h>
 
 #define MAX_SYSCALLS 256
 void (*syscalls[MAX_SYSCALLS])(struct syscall_frame* frame) = {NULL};
@@ -43,6 +44,8 @@ void init_syscall() {
 }
 
 void execute_syscall(struct syscall_frame* frame) {
+    rflags_clr_ac();
+
     uint64_t syscall = frame->rax;
     if (syscall < MAX_SYSCALLS && syscalls[syscall] != NULL) {
         syscalls[syscall](frame);

@@ -2,10 +2,12 @@
 #include <interupts/interupts.h>
 #include <drivers/x86_64/timers/pit.h>
 #include <drivers/x86_64/apic/apic.h>
+#include <drivers/x86_64/rflags.h>
 #include <drivers/timer.h>
 
 void dispatch_interupt (struct interrupt_frame *frame) {
     if (frame->cs & 0x3) {
+        rflags_clr_ac();
         asm volatile ("swapgs");
     }
 

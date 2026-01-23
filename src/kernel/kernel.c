@@ -14,6 +14,7 @@
 #include <drivers/x86_64/gdt.h>
 #include <drivers/x86_64/pic.h>
 #include <drivers/x86_64/ps2.h>
+#include <drivers/x86_64/crX.h>
 #include <drivers/x86_64/timers/tsc.h>
 #include <drivers/x86_64/timers/pit.h>
 #include <drivers/x86_64/apic/apic.h>
@@ -27,6 +28,7 @@
 #include <drivers/fb_renderer.h>
 #include <interupts/interupts.h>
 #include <syscalls/syscalls.h>
+#include <utils/safe_user_funcs.h>
 
 #include <acpi/acpi.h>
 
@@ -87,28 +89,7 @@ void kmain(void) {
         printf("KERNEL: Hypervisor ID: %s\n", get_hypervisor_id());
     }
 
-    // setup CR0
-    __asm__ volatile (
-        "mov %%cr4, %%rax\n"
-        "btr $2, %%rax\n"    // clear EM
-        "mov %%rax, %%cr4"
-        :
-        :
-        : "rax", "memory"
-    );
-
-    // setup CR4
-    __asm__ volatile (
-        "mov %%cr4, %%rax\n"
-        "bts $4, %%rax\n"    // set PSE
-        "bts $9, %%rax\n"    // set MP
-        "bts $9, %%rax\n"    // set OSFXSR
-        "bts $10, %%rax\n"   // set OSXMMEXCPT
-        "mov %%rax, %%cr4"
-        :
-        :
-        : "rax", "memory"
-    );
+    setup_control_registers();
 
     setup_gdt();
     setup_idt();

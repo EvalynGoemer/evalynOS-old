@@ -1,9 +1,14 @@
 #include "stdbool.h"
 #include <interupts/interupts.h>
 #include <utils/panic.h>
+#include <utils/safe_user_funcs.h>
 #include <stdio.h>
 
 void page_fault_isr(struct interrupt_frame* frame) {
+    if (fault_handle_safe_funcs(frame) == 0) {
+        return;
+    }
+
     uint64_t error = frame->error & 0x7f;
     bool p    = error   & 0x1;
     bool rw   = error   & 0x2;

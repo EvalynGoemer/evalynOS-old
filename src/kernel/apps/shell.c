@@ -9,6 +9,7 @@
 #include <memory/debug.h>
 #include <memory/pmm.h>
 #include <memory/vmm.h>
+#include <drivers/x86_64/rflags.h>
 #include <scheduler/scheduler.h>
 #include <scheduler/switch.h>
 
@@ -27,10 +28,12 @@ void badapple_kthread() {
 
     uint64_t *stack = (uint64_t *)stack_top;
 
+    rflags_set_ac();
     *--stack = 0; // alignment
     *--stack = 0; // envp
     *--stack = 0; // argv
     *--stack = 0; // argc
+    rflags_clr_ac();
 
     stack_top = (uintptr_t)stack;
 
@@ -57,10 +60,12 @@ void helloWorld_kthread() {
 
     uint64_t *stack = (uint64_t *)stack_top;
 
+    rflags_set_ac();
     *--stack = 0; // alignment
     *--stack = 0; // envp
     *--stack = 0; // argv
     *--stack = 0; // argc
+    rflags_clr_ac();
 
     stack_top = (uintptr_t)stack;
 
@@ -87,10 +92,12 @@ void doom_kthread() {
 
     uint64_t *stack = (uint64_t *)stack_top;
 
+    rflags_set_ac();
     *--stack = 0; // alignment
     *--stack = 0; // envp
     *--stack = 0; // argv
     *--stack = 0; // argc
+    rflags_clr_ac();
 
     stack_top = (uintptr_t)stack;
 

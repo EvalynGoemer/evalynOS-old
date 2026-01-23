@@ -1,3 +1,4 @@
+#include "utils/safe_user_funcs.h"
 #include <syscalls/syscalls.h>
 #include <scheduler/scheduler.h>
 #include <filesystem/filesystem.h>
@@ -31,7 +32,7 @@ void sys_read(struct syscall_frame* frame) {
     size_t max_bytes = size - file.seek_pos;
     size_t bytes = frame->rdx > max_bytes ? max_bytes : frame->rdx;
 
-    memcpy((void*)frame->rsi, file.file_data + file.seek_pos, bytes);
+    copy_to_user((void*)frame->rsi, file.file_data + file.seek_pos, bytes);
     file.seek_pos += bytes;
     get_current_thread()->fds[frame->rbx] = file;
     frame->rax = bytes;
