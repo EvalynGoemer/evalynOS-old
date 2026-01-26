@@ -73,7 +73,7 @@ void setup_ps2() {
     outb(PS2_DATA_PORT, 0xFF);
     io_wait();
 
-    int timeout = 1000;
+    int timeout = 50;
     uint8_t response;
     while (timeout--) {
         if ((inb(PS2_STATUS_PORT) & 1) != 0) {
@@ -88,9 +88,15 @@ void setup_ps2() {
     outb(PS2_DATA_PORT, 0x02);
     io_wait();
 
-    while ((inb(PS2_STATUS_PORT) & 1) != 0) {
+    timeout = 50;
+    while (timeout--) {
+        if ((inb(PS2_STATUS_PORT) & 1) == 0) {
+            break;
+        }
         inb(PS2_DATA_PORT);
+        timer_blocking_sleep_ms(1);
     }
+
 
     unmask_irq(1);
 

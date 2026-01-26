@@ -5,6 +5,8 @@ A W.I.P 64 Bit OS Kernel
 
 You will need to install the following arch packages to compile (Non inclusive, More testing needs to be done)
 - base-devel
+- clang
+- lld
 - python3
 - qemu-desktop
 - edk2-ovmf
@@ -39,6 +41,12 @@ This kernel is designed to be able to run on *REAL* hardware if it meets the fol
 - A PC speaker
 
 Flash the `evalynOS.iso` file to a usb with a command such as `dd if=./evalynOS.iso of=/dev/{USB_STICK}` and then it can be booted om any system.
+
+## Kernel cmdline args
+- `serial=on`: Enables serial on port `0x3F8` on all machines
+- `serial=on`: Enables serial on port `0x3F8` when under hypervisor
+- `serial=0xXXXX`: Enables serial on the hex I/O port given
+- `dbg=on`: Enabled extended logging
 
 ## Kernel Mode Shell Commands
 - `TEST`: Prints a test message

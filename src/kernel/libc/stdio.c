@@ -1,5 +1,6 @@
 #include "drivers/x86_64/ports.h"
 #include "drivers/x86_64/cpuid.h"
+#include <stdbool.h>
 #include <utils/globals.h>
 #include <drivers/x86_64/serial.h>
 

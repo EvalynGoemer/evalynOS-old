@@ -32,3 +32,5 @@ qemu_log.txt
 *.wad
 *.hashes
 *.sig
+*.idx
+compile_commands.json

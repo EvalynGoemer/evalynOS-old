@@ -1,7 +1,6 @@
 #pragma once
 
 #include <stdint.h>
-#include <stdio.h>
 
 static inline void mmio_write_offset_64(uint64_t base_addr, uint64_t offset, uint64_t value) {
     volatile uint64_t *addr = (volatile uint64_t *)(base_addr + offset);

@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 volatile uint8_t keyboard_buffer_index;
 volatile char keyboard_buffer[256] = {'\0'};

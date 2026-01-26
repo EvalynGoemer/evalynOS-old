@@ -39,6 +39,12 @@ volatile struct limine_executable_file_request executable_file_request = {
 };
 
 __attribute__((used, section(".limine_requests")))
+volatile struct limine_executable_cmdline_request executable_cmdline_request = {
+    .id = LIMINE_EXECUTABLE_CMDLINE_REQUEST_ID,
+    .revision = 0
+};
+
+__attribute__((used, section(".limine_requests")))
 volatile struct limine_module_request module_request = {
     .id = LIMINE_MODULE_REQUEST_ID,
     .revision = 0

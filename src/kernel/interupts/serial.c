@@ -4,11 +4,9 @@
 #include <drivers/x86_64/serial.h>
 #include <drivers/keyboard.h>
 
-#define SERIAL_PORT 0x3F8
-
 void serial_isr() {
-    while (inb(SERIAL_PORT + 5) & 1) {
-        char c = inb(SERIAL_PORT);
+    while (inb(serial_port + 5) & 1) {
+        char c = inb(serial_port);
         if (c != '\0') {
             serial_buffer[serial_buffer_index] = c;
             serial_buffer_index++;

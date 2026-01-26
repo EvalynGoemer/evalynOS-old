@@ -3,14 +3,17 @@
 #include <drivers/x86_64/ports.h>
 #include <filesystem/filesystem.h>
 
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
-#define SERIAL_PORT 0x3F8
+uint16_t serial_port = 0x3F8;
+bool serial_enabled = false;
+bool serial_works = false;
 
-volatile bool serial_works = false;
+
 volatile uint8_t serial_buffer_index;
 volatile char serial_buffer[256] = {'\0'};
 
@@ -29,25 +32,29 @@ int serialDeviceWrite(__attribute__((unused)) char* path, __attribute__((unused)
 }
 
 void setup_serial() {
-    outb(SERIAL_PORT + 3, 0x00); // disable DLAB to set interrupt register
-    outb(SERIAL_PORT + 1, 0x01); // enable interrupts
-    outb(SERIAL_PORT + 3, 0x80); // enable DLAB to change baud rate
-    outb(SERIAL_PORT + 0, 0x01); // set divsor to 1 for 115200 baud
-    outb(SERIAL_PORT + 1, 0x00); // high byte of previous
-    outb(SERIAL_PORT + 3, 0x03); // set 8N1 mode
-    outb(SERIAL_PORT + 2, 0x07); // set FIFO with 1 byte threshold
-    outb(SERIAL_PORT + 4, 0x0B); // enable the irqs
+    if (!serial_enabled) {
+        return;
+    }
 
-    outb(SERIAL_PORT + 4, 0x1E); // enable loopback for testing
-    outb(SERIAL_PORT + 0, 0x69); // send test byte
-    if(inb(SERIAL_PORT + 0) != 0x69) {
-        printf("SERIAL: Failed to init; Do you lack a serial port at I/O port 0x3F8?\n");
+    outb(serial_port + 3, 0x00); // disable DLAB to set interrupt register
+    outb(serial_port + 1, 0x01); // enable interrupts
+    outb(serial_port + 3, 0x80); // enable DLAB to change baud rate
+    outb(serial_port + 0, 0x01); // set divsor to 1 for 115200 baud
+    outb(serial_port + 1, 0x00); // high byte of previous
+    outb(serial_port + 3, 0x03); // set 8N1 mode
+    outb(serial_port + 2, 0x07); // set FIFO with 1 byte threshold
+    outb(serial_port + 4, 0x0B); // enable the irqs
+
+    outb(serial_port + 4, 0x1E); // enable loopback for testing
+    outb(serial_port + 0, 0x69); // send test byte
+    if(inb(serial_port + 0) != 0x69) {
+        printf("SERIAL: Failed to init; Do you lack a serial port at I/O port 0x%x?\n", serial_port);
         serial_works = false;
         return;
     }
-    outb(SERIAL_PORT + 4, 0x0F); // disable loopback
+    outb(serial_port + 4, 0x0F); // disable loopback
 
-    printf("SERIAL: Setup serial on I/O port 0x3F8\n");
+    printf("SERIAL: Setup serial on I/O port 0x%x\n", serial_port);
 
     serial_works = true;
 
@@ -61,17 +68,17 @@ void setup_serial() {
 }
 
 int serial_received() {
-    return inb(SERIAL_PORT + 5) & 1;
+    return inb(serial_port + 5) & 1;
 }
 
 char read_serial() {
     while (serial_received() == 0);
 
-    return inb(SERIAL_PORT);
+    return inb(serial_port);
 }
 
 int is_transmit_empty() {
-    return inb(SERIAL_PORT + 5) & 0x20;
+    return inb(serial_port + 5) & 0x20;
 }
 
 int write_serial(char *string, int write_length) {
@@ -84,10 +91,10 @@ int write_serial(char *string, int write_length) {
 
         // qemu serial terminal and maybe others expect CRLF and not LF while kernel uses LF so convert
         if (c == '\n') {
-            outb(SERIAL_PORT, '\r');
+            outb(serial_port, '\r');
         }
 
-        outb(SERIAL_PORT, c);
+        outb(serial_port, c);
         i++;
     }
 

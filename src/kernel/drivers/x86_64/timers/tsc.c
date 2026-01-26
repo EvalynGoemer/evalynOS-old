@@ -18,24 +18,14 @@ bool setup_tsc() {
         }
     }
 
-    /*
-     * The intel SDM https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html
-     * as of 11/11/26 states CPUID leaf 0x15 can give the TSC's frequency but on an intel laptop
-     * with an Intel® Core™ i5-12450H this seemingly reports a nonsense value when computing
-     * the TSC frequency as the manual states with TSC_frequency = ECX * EBX/EAX so this
-     * method is disabled until futher info is gotten. Calibrating it normaly works fine anyways.
-     *
-     * See Volume 1, Section 21.3, Subsection CPUID.15H
-     */
-
-    // if (cpuid_standard_supported(CPUID_GET_FREQ_INFO1)) {
-    //     struct cpuid_regs frequency_info = cpuid(CPUID_GET_FREQ_INFO1, CPUID_NO_SUBLEAF);
-    //     if (frequency_info.eax && frequency_info.ebx && frequency_info.ecx) {
-    //         tsc_frequency = (frequency_info.ecx * (frequency_info.ebx / frequency_info.eax));
-    //         tsc_good = true;
-    //         goto end;
-    //     }
-    // }
+    if (cpuid_standard_supported(CPUID_GET_FREQ_INFO1)) {
+        struct cpuid_regs frequency_info = cpuid(CPUID_GET_FREQ_INFO1, CPUID_NO_SUBLEAF);
+        if (frequency_info.eax && frequency_info.ebx && frequency_info.ecx) {
+            tsc_frequency = ((uint64_t)frequency_info.ecx * ((uint64_t)frequency_info.ebx / (uint64_t)frequency_info.eax));
+            tsc_good = true;
+            goto end;
+        }
+    }
 
     if (currentTimerSource == TIMER_SOURCE_NONE) {
         printf("TSC: TSC Unusable for timing: No timer source to calibrate\n");
@@ -54,6 +44,7 @@ bool setup_tsc() {
     tsc_frequency = (total_tsc_delta * 20) / iterations;
     tsc_good = true;
 
+    end:
     if (tsc_frequency < (uint64_t)10e6) {
         printf("TSC: TSC Unusable for timing: Calibration showed invalid frequency of %ldMHz\n", (tsc_frequency / (uint64_t)1e6));
         tsc_good = false;

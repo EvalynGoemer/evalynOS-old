@@ -3,7 +3,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-extern volatile bool serial_works;
+extern uint16_t serial_port;
+extern bool serial_enabled;
+extern bool serial_works;
+
 extern volatile uint8_t serial_buffer_index;
 extern volatile char serial_buffer[256];
 

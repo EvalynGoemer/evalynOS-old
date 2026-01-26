@@ -9,6 +9,7 @@
 #include <misc/font8x8_basic.h>
 
 #include <utils/globals.h>
+#include <utils/cmdline.h>
 #include <utils/panic.h>
 #include <drivers/x86_64/idt.h>
 #include <drivers/x86_64/gdt.h>
@@ -89,8 +90,9 @@ void kmain(void) {
         printf("KERNEL: Hypervisor ID: %s\n", get_hypervisor_id());
     }
 
-    setup_control_registers();
+    setup_cmdline();
 
+    setup_control_registers();
     setup_gdt();
     setup_idt();
 
