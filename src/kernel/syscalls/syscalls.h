@@ -16,10 +16,10 @@
 #define SYSCALL_FB_GET_PITCH     31
 #define SYSCALL_PS2_GET_SCANCODE 40
 
-struct syscall_frame {
+typedef struct syscall_frame {
     uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
     uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax;
-};
+} syscall_frame_t;
 
 extern void init_syscall();
 extern void syscall_handler();

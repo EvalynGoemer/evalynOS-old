@@ -1,3 +1,4 @@
+#include "drivers/x86_64/fred/fred.h"
 #include "interupts/spurious.h"
 #include <interupts/interupts.h>
 #include <drivers/x86_64/timers/pit.h>
@@ -8,8 +9,12 @@
 void dispatch_interupt (struct interrupt_frame *frame) {
     if (frame->cs & 0x3) {
         rflags_clr_ac();
-        asm volatile ("swapgs");
+        if (!fred_enbled) {
+            asm volatile ("swapgs");
+        }
     }
+
+
 
     switch (frame->vector) {
         case INTERRUPT_HANDLER_DOUBLE_FAULT:
@@ -44,6 +49,8 @@ void dispatch_interupt (struct interrupt_frame *frame) {
     }
 
     if (frame->cs & 0x3) {
-        asm volatile ("swapgs");
+        if (!fred_enbled) {
+            asm volatile ("swapgs");
+        }
     }
 }

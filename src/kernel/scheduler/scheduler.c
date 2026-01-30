@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include <scheduler/scheduler.h>
+#include <drivers/x86_64/fred/fred.h>
 #include <scheduler/switch.h>
 #include <filesystem/filesystem.h>
 #include <memory/vmm.h>
@@ -44,7 +45,7 @@ void create_thread(void (*entry_point)(void*), pagemap_t *pagemap) {
 
     new_thread->stack = malloc(STACK_SIZE);
     memset(new_thread->stack, 0, STACK_SIZE);
-    new_thread->stack_top = (void *)(((uintptr_t)new_thread->stack + STACK_SIZE) & ~0xFULL);
+    new_thread->stack_top = (void *)(((uintptr_t)new_thread->stack + STACK_SIZE) & ~0xF3ULL);
 
     new_thread->threadId = next_thread_id;
     next_thread_id++;
@@ -102,6 +103,10 @@ void schedule() {
     }
 
     vmm_switch_to(current_thread->pagemap);
+
+    if (fred_enbled) {
+        wrmsr(FRED_RSP0, (uint64_t)current_thread->stack_top);
+    }
 
     tss.rsp0 = (uint64_t)current_thread->stack_top;
 

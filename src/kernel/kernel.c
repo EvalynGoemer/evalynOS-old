@@ -13,6 +13,7 @@
 #include <utils/panic.h>
 #include <drivers/x86_64/idt.h>
 #include <drivers/x86_64/gdt.h>
+#include <drivers/x86_64/fred/fred.h>
 #include <drivers/x86_64/pic.h>
 #include <drivers/x86_64/ps2.h>
 #include <drivers/x86_64/crX.h>
@@ -30,6 +31,7 @@
 #include <interupts/interupts.h>
 #include <syscalls/syscalls.h>
 #include <utils/safe_user_funcs.h>
+#include <utils/macros.h>
 
 #include <acpi/acpi.h>
 
@@ -80,7 +82,6 @@ void kmain(void) {
         8, 8, 1, 0, 0, 0
     );
 
-
     printf("\033c\033[2J\033[H");
     printf("KERNEL: Kernel Started\n");
 
@@ -94,7 +95,10 @@ void kmain(void) {
 
     setup_control_registers();
     setup_gdt();
-    setup_idt();
+
+    if (!setup_fred()) {
+        setup_idt();
+    }
 
     setup_pmm();
     setup_vmm();

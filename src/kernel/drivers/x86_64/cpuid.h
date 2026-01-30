@@ -17,6 +17,7 @@ enum {
     CPUID_HYPERVISOR       = 31, // ECX
     CPUID_SMEP             = 7,  // EBX
     CPUID_SMAP             = 20, // EBX
+    CPUID_FRED             = 17, // EAX, SUB1
 
     CPUID_EAX              = 'a',
     CPUID_EBX              = 'b',
@@ -24,6 +25,7 @@ enum {
     CPUID_EDX              = 'd',
 
     CPUID_NO_SUBLEAF       = 0,
+    CPUID_SUBLEAF_1        = 1,
 };
 
 struct cpuid_regs {

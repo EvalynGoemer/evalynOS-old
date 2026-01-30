@@ -8,12 +8,11 @@
 
 #define LOG(fmt, ...) \
     do { \
-        if (dbg_enabled) \
             printf(fmt "\n", ##__VA_ARGS__); \
     } while (0);
 
 #define DBG_LOG(fmt, ...) \
     do { \
         if (dbg_enabled) \
-            printf("DBG: " fmt "\n", ##__VA_ARGS__); \
+            printf("\x1b[93mDBG: " fmt "\x1b[0m\n", ##__VA_ARGS__); \
     } while (0);

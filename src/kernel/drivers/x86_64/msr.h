@@ -5,6 +5,14 @@ enum MSRs : uint32_t {
     // LAPIC
     APIC_BASE = 0x0000001B,
 
+    // FRED (Flexible Return and Event Delivery)
+    FRED_CONFIG  = 0x000001D4,
+    FRED_RSP0    = 0x000001CC,
+    FRED_RSP1    = 0x000001CD,
+    FRED_RSP2    = 0x000001CE,
+    FRED_RSP3    = 0x000001CF,
+    FRED_STKLVLS = 0x000001D0,
+
     // x2APIC
     x2APIC_ID    = 0x00000802,
     x2APIC_EOI   = 0x0000080B,

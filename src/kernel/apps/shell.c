@@ -8,6 +8,7 @@
 #include <filesystem/filesystem.h>
 #include <memory/debug.h>
 #include <memory/pmm.h>
+#include <drivers/x86_64/fred/fred.h>
 #include <memory/vmm.h>
 #include <drivers/x86_64/rflags.h>
 #include <scheduler/scheduler.h>
@@ -41,11 +42,17 @@ void badapple_kthread() {
 
     fs_read("/badapple.elf", elf_file, 16 * 1024 * 1024);
 
-    asm volatile ("swapgs");
+    if (!fred_enbled) {
+        asm volatile ("swapgs");
+    }
 
     uint64_t start_addr = load_elf(elf_file);
     if (start_addr != 0) {
-        switch_to_user(start_addr, stack_top);
+        if (fred_enbled) {
+            fred_switch_to_user(start_addr, stack_top);
+        } else {
+            switch_to_user(start_addr, stack_top);
+        }
     }
 }
 
@@ -73,11 +80,17 @@ void helloWorld_kthread() {
 
     fs_read("/hello_world.elf", elf_file, 16 * 1024 * 1024);
 
-    asm volatile ("swapgs");
+    if (!fred_enbled) {
+        asm volatile ("swapgs");
+    }
 
     uint64_t start_addr = load_elf(elf_file);
     if (start_addr != 0) {
-        switch_to_user(start_addr, stack_top);
+        if (fred_enbled) {
+            fred_switch_to_user(start_addr, stack_top);
+        } else {
+            switch_to_user(start_addr, stack_top);
+        }
     }
 }
 
@@ -105,11 +118,17 @@ void doom_kthread() {
 
     fs_read("/doomgeneric.elf", elf_file, 16 * 1024 * 1024);
 
-    asm volatile ("swapgs");
+    if (!fred_enbled) {
+        asm volatile ("swapgs");
+    }
 
     uint64_t start_addr = load_elf(elf_file);
     if (start_addr != 0) {
-        switch_to_user(start_addr, stack_top);
+        if (fred_enbled) {
+            fred_switch_to_user(start_addr, stack_top);
+        } else {
+            switch_to_user(start_addr, stack_top);
+        }
     }
 }
 

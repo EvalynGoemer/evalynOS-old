@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <drivers/x86_64/cpuid.h>
 #include <drivers/x86_64/serial.h>
 #include <utils/globals.h>
