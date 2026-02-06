@@ -80,6 +80,7 @@ override CPPFLAGS := \
     -I src/generated \
     -I deps/limine-protocol/include \
     -I deps/flanterm/src/ \
+    -I deps/header-only/ \
     -I deps/nanoprintf/ \
     -isystem deps/freestnd-c-hdrs/include \
     -isystem src/kernel/libc \

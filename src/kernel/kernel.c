@@ -103,6 +103,7 @@ void kmain(void) {
     setup_pmm();
     setup_vmm();
     setup_heap();
+    valloc_init();
 
     setup_acpi();
     setup_irqs();

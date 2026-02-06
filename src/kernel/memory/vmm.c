@@ -12,10 +12,9 @@
 #include <utils/panic.h>
 #include <memory/pmm.h>
 #include <memory/vmm.h>
+#include <memory/vma.h>
 #include <stdlib.h>
-
-#define ALIGN_UP(x, align) ((((uintptr_t) (x)) + ((align) - 1)) & ~((uintptr_t) ((align) - 1)))
-#define ALIGN_DOWN(x, align) (((uintptr_t) (x)) & ~((uintptr_t) ((align) - 1)))
+#include <utils/macros.h>
 
 pagemap_t kernel_pagemap = {0};
 
@@ -23,8 +22,11 @@ void vmm_switch_to(pagemap_t *pagemap) {
     uintptr_t cr3 = (uintptr_t)pagemap->top_level - hhdm_request.response->offset;
     asm volatile("mov %0, %%cr3" ::"r"(cr3) : "memory");
 }
+[[clang::overloadable]] void vmm_map_page(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr, uint64_t flags) {
+    vmm_map_page(pagemap, virt_addr, phys_addr, flags, PAGE_SIZE);
+}
 
-void vmm_map_page(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr, uint64_t flags) {
+[[clang::overloadable]] void vmm_map_page(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr, uint64_t flags, uint64_t page_size) {
     uint16_t pml1i = (virt_addr >> 12) & 0x1ff;
     uint16_t pml2i = (virt_addr >> 21) & 0x1ff;
     uint16_t pml3i = (virt_addr >> 30) & 0x1ff;
@@ -37,6 +39,11 @@ void vmm_map_page(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr, 
     }
     uint64_t* pml3v = (uint64_t*)((pagemap->top_level[pml4i] & PTE_MASK) + hhdm_request.response->offset);
 
+    if (page_size == JUMBO_PAGE_SIZE) {
+        pml3v[pml3i] = phys_addr & PTE_MASK;
+        pml3v[pml3i] |= PTE_PRESENT | PTE_PS | flags;
+        return;
+    }
     if (!(pml3v[pml3i] & PTE_PRESENT)) {
         void* new_page = allocate_page();
         pml3v[pml3i] = (uint64_t)new_page & PTE_MASK;
@@ -44,6 +51,11 @@ void vmm_map_page(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr, 
     }
     uint64_t* pml2v = (uint64_t*)((pml3v[pml3i] & PTE_MASK) + hhdm_request.response->offset);
 
+    if (page_size == LARGE_PAGE_SIZE) {
+        pml2v[pml2i] = phys_addr & PTE_MASK;
+        pml2v[pml2i] |= PTE_PRESENT | PTE_PS | flags;
+        return;
+    }
     if (!(pml2v[pml2i] & PTE_PRESENT)) {
         void* new_page = allocate_page();
         pml2v[pml2i] = (uint64_t)new_page & PTE_MASK;
@@ -61,13 +73,28 @@ void vmm_map_pages_continuous(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t
     }
 }
 
+void vmm_map_pages_hhdm(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr, uint64_t pages, uint64_t flags) {
+    uint64_t biggest_page_supported = LARGE_PAGE_SIZE;
+    if (cpuid_extended_supported(CPUID_GET_EXT_FEATURES))
+        if (cpu_feature_bit(CPUID_GET_EXT_FEATURES, CPUID_NO_SUBLEAF, CPUID_EDX, CPUID_1GB_PAGES))
+            biggest_page_supported = JUMBO_PAGE_SIZE;
+
+    uint64_t length = pages * PAGE_SIZE;
+    uintptr_t virt_start = ALIGN_DOWN(virt_addr, biggest_page_supported);
+    uintptr_t phys_start = ALIGN_DOWN(phys_addr, biggest_page_supported);
+    uintptr_t virt_end   = ALIGN_UP(virt_addr + length, biggest_page_supported);
+
+    for (uintptr_t va = virt_start, pa = phys_start; va < virt_end; va += biggest_page_supported, pa += biggest_page_supported)
+        vmm_map_page(pagemap, va, pa, flags, biggest_page_supported);
+}
+
 void setup_vmm() {
     uint64_t pml4_phys = (uint64_t)allocate_page();
     uint64_t* pml4_virt = (void*)(pml4_phys + hhdm_request.response->offset);
 
     for (int i = 256; i < 511; i++) {
         pml4_virt[i] = (uint64_t)allocate_page();
-        pml4_virt[i] |= PTE_PRESENT | PTE_WRITABLE | PTE_PERM;
+        pml4_virt[i] |= PTE_PRESENT | PTE_WRITABLE | PTE_LOCKED;
     }
 
     kernel_pagemap.top_level = (void*)(pml4_phys + hhdm_request.response->offset);
@@ -93,6 +120,13 @@ void setup_vmm() {
                                  (ALIGN_UP(ph->mem_size, PAGE_SIZE) / PAGE_SIZE), flags);
     }
 
+    if (cpuid_extended_supported(CPUID_GET_EXT_FEATURES)) {
+        if (cpu_feature_bit(CPUID_GET_EXT_FEATURES, CPUID_NO_SUBLEAF, CPUID_EDX, CPUID_1GB_PAGES))
+            printf("VMM: Using 1GB Pages for HHDM\n");
+        else
+            printf("VMM: Using 2MB Pages for HHDM\n");
+    }
+
     struct limine_memmap_response *memmap = memmap_request.response;
     bool hypervisor = cpu_feature_bit(1, 0, 'c', CPUID_HYPERVISOR);
     for (size_t i = 0; i < memmap->entry_count; i++) {
@@ -104,7 +138,7 @@ void setup_vmm() {
             flags |= PTE_PCD | PTE_PAT;
         }
 
-        vmm_map_pages_continuous(&kernel_pagemap, map_base + hhdm_request.response->offset, map_base, page_count, flags);
+        vmm_map_pages_hhdm(&kernel_pagemap, map_base + hhdm_request.response->offset, map_base, page_count, flags);
     }
 
     vmm_switch_to(&kernel_pagemap);
