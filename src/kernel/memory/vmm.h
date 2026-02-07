@@ -36,3 +36,4 @@ extern void vmm_switch_to(pagemap_t *pagemap);
 [[clang::overloadable]] extern void vmm_map_page(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr, uint64_t flags);
 [[clang::overloadable]] extern void vmm_map_page(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr, uint64_t flags, uint64_t page_size);
 extern pagemap_t *new_pagemap();
+extern void delete_pagemap(pagemap_t* pagemap);

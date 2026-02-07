@@ -33,6 +33,7 @@ void init_syscall() {
     syscalls[SYSCALL_READ]             = sys_read;
     syscalls[SYSCALL_SEEK]             = sys_seek;
     syscalls[SYSCALL_SLEEP_MS]         = sys_sleep_ms;
+    syscalls[SYSCALL_EXIT]             = sys_exit;
     syscalls[SYSCALL_GET_MS]           = sys_get_ms;
     syscalls[SYSCALL_PCSPKR_PLAY]      = sys_pcspkr_play;
     syscalls[SYSCALL_PCSPKR_STOP]      = sys_pcspkr_stop;

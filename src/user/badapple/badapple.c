@@ -1,66 +1,38 @@
+#include <stdint.h>
+
 #include "badapple_audio.h"
 #include "badapple_video.h"
 
-#include <stdint.h>
-
 static long syscall(int syscall_type, long a) {
     long ret;
-    __asm__ volatile (
-        "syscall"
-        : "=a"(ret)
-        : "a"(syscall_type), "b"(a)
-        : "rcx", "r11", "memory"
-    );
+    __asm__ volatile("syscall" : "=a"(ret) : "a"(syscall_type), "b"(a) : "rcx", "r11", "memory");
     return ret;
 }
 
-int get_id() {
-    return syscall(0, 0);
-}
+int get_id() { return syscall(0, 0); }
 
-void print(char* string) {
-    syscall(1, (long)string);
-}
+void print(char* string) { syscall(1, (long)string); }
 
-void sleep_ms(long ms) {
-    syscall(7, ms);
-}
+void sleep_ms(long ms) { syscall(7, ms); }
 
-void play_sound(long dx) {
-    syscall(10, dx);
-}
+void play_sound(long dx) { syscall(10, dx); }
 
-void stop_sound() {
-    syscall(11, 0);
-}
+void stop_sound() { syscall(11, 0); }
 
-void set_pit_frequency(int frequency) {
-    syscall(20, frequency);
-}
+void set_pit_frequency(int frequency) { syscall(20, frequency); }
 
-void reset_pit_cycles() {
-    syscall(21, 0);
-}
+void reset_pit_cycles() { syscall(21, 0); }
 
-int get_pit_cycles() {
-    return syscall(22, 0);
-}
+int get_pit_cycles() { return syscall(22, 0); }
 
+void setup_fb() { syscall(30, 0); }
 
-void setup_fb() {
-    syscall(30, 0);
-}
-
-int get_pitch() {
-    return syscall(31, 0);
-}
+int get_pitch() { return syscall(31, 0); }
 
 uint64_t frameBufferBase = 0x00000000A0000000;
 uint32_t frameBufferPitch;
 
-void plotPixel(int x, int y, int color) {
-    *((volatile uint32_t*)frameBufferBase + y * (frameBufferPitch >> 2) + x) = color;
-}
+void plotPixel(int x, int y, int color) { *((volatile uint32_t*)frameBufferBase + y * (frameBufferPitch >> 2) + x) = color; }
 
 static unsigned int prevFrame[120 * 90];
 void drawFrame(const unsigned char* rleData, int rleLength, int frameWidth, int frameHeight, int startX, int startY, int scale) {
@@ -101,62 +73,60 @@ void drawFrame(const unsigned char* rleData, int rleLength, int frameWidth, int 
 }
 
 int main() {
-    int thread_id = get_id() - 2;
+    int thread_id = 0;
     setup_fb();
     frameBufferPitch = get_pitch();
 
-    while (1) {
-        int pit_base = get_pit_cycles();
-        int audioSamplesPlayed = 0;
-        int lastTick = 0;
-        int frameIndex = 0;
-        int accum = 0;
+    int pit_base = get_pit_cycles();
+    int audioSamplesPlayed = 0;
+    int lastTick = 0;
+    int frameIndex = 0;
+    int accum = 0;
 
-        while (audioSamplesPlayed < audio_data_length) {
-            int currentTicks = get_pit_cycles() - pit_base;
+    while (audioSamplesPlayed < audio_data_length) {
+        int currentTicks = get_pit_cycles() - pit_base;
 
-            while (lastTick < currentTicks) {
-                accum += 140;
-                while (accum >= 1000) {
-                    accum -= 1000;
+        while (lastTick < currentTicks) {
+            accum += 140;
+            while (accum >= 1000) {
+                accum -= 1000;
 
-                    if (audioSamplesPlayed < audio_data_length) {
-                        uint8_t bl = audio_data[audioSamplesPlayed];
-                        if (bl == 254) {
-                            stop_sound();
-                        } else if (bl != 0xFF) {
-                            play_sound(audio_to_pcspkr[bl]);
-                        }
-                        audioSamplesPlayed++;
+                if (audioSamplesPlayed < audio_data_length) {
+                    uint8_t bl = audio_data[audioSamplesPlayed];
+                    if (bl == 254) {
+                        stop_sound();
+                    } else if (bl != 0xFF) {
+                        play_sound(audio_to_pcspkr[bl]);
                     }
+                    audioSamplesPlayed++;
                 }
-                lastTick++;
             }
-
-            int desiredFrame;
-            if (audioSamplesPlayed >= 15499) {
-                int pre = (15498 * 3) / 14 + 22;
-                desiredFrame = ((audioSamplesPlayed - 15499) * 2) / 9 + pre;
-            } else {
-                desiredFrame = (audioSamplesPlayed * 3) / 14 + 22;
-            }
-
-            if (desiredFrame >= frame_count) desiredFrame = frame_count - 1;
-
-            if (desiredFrame != frameIndex) {
-                frameIndex = desiredFrame;
-                unsigned int start = frame_offsets[frameIndex];
-                unsigned int end   = (frameIndex + 1 < frame_count) ? frame_offsets[frameIndex + 1] : start;
-                unsigned int length = end - start;
-
-                drawFrame(&frames_rle[start], length, 120, 90, 650,
-                          8 + (90 * 3 * thread_id), 3);
-            }
-
-            if ((get_pit_cycles() - pit_base) <= currentTicks) {
-                sleep_ms(0);
-            }
+            lastTick++;
         }
-        stop_sound();
+
+        int desiredFrame;
+        if (audioSamplesPlayed >= 15499) {
+            int pre = (15498 * 3) / 14 + 22;
+            desiredFrame = ((audioSamplesPlayed - 15499) * 2) / 9 + pre;
+        } else {
+            desiredFrame = (audioSamplesPlayed * 3) / 14 + 22;
+        }
+
+        if (desiredFrame >= frame_count) desiredFrame = frame_count - 1;
+
+        if (desiredFrame != frameIndex) {
+            frameIndex = desiredFrame;
+            unsigned int start = frame_offsets[frameIndex];
+            unsigned int end = (frameIndex + 1 < frame_count) ? frame_offsets[frameIndex + 1] : start;
+            unsigned int length = end - start;
+
+            drawFrame(&frames_rle[start], length, 120, 90, 650, 8 + (90 * 3 * thread_id), 3);
+        }
+
+        if ((get_pit_cycles() - pit_base) <= currentTicks) {
+            sleep_ms(0);
+        }
     }
+    stop_sound();
+    return 0;
 }

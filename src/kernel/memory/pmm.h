@@ -1,9 +1,9 @@
 #pragma once
 
 #include <stdint.h>
-void setup_pmm();
-void *allocate_page();
-void free_page(void *page);
+extern void setup_pmm();
+extern void *allocate_page();
+extern void free_page(void *page);
 
 typedef struct page {
     uint16_t ref_count;
@@ -31,6 +31,5 @@ typedef struct pmm_freelist_node {
     uint8_t bootstrap: 1;
 } pmm_freelist_node_t;
 
-
-
-
+extern page_t* get_page_info(void* phys_addr);
+extern void* get_phys_addr_from_page_info(page_t* page);

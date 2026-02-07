@@ -84,10 +84,10 @@ index 508cc61..053b628 100644
      { "hacx.wad",     pack_hacx, commercial, "Hacx" },
 diff --git a/doomgeneric/doomgeneric_evalynos.c b/doomgeneric/doomgeneric_evalynos.c
 new file mode 100644
-index 0000000..9c6f9dd
+index 0000000..5ee7fa4
 --- /dev/null
 +++ b/doomgeneric/doomgeneric_evalynos.c
-@@ -0,0 +1,216 @@
+@@ -0,0 +1,219 @@
 +#include <stdint.h>
 +#include <stdio.h>
 +#include <string.h>
@@ -109,6 +109,7 @@ index 0000000..9c6f9dd
 +void sleep_ms(int ms) {
 +    syscall(7, ms);
 +}
++
 +int get_pit_cycles() {
 +    return syscall(22, 0);
 +}
@@ -252,6 +253,8 @@ index 0000000..9c6f9dd
 +            case 0x32: *doomKey = 'm';            return 1;
 +            case 0x2E: *doomKey = 'c';            return 1;
 +            case 0x18: *doomKey = 'o';            return 1;
++            case 0x15: *doomKey = 'y';            return 1;
++            case 0x31: *doomKey = 'n';            return 1;
 +
 +            case 0x3B: *doomKey = KEY_F1;         return 1;
 +            case 0x3C: *doomKey = KEY_F2;         return 1;

@@ -587,10 +587,10 @@ index 0000000..f48c5b7
 +libc_include_dirs += include_directories('include')
 diff --git a/sysdeps/evalynos/sysdeps.cpp b/sysdeps/evalynos/sysdeps.cpp
 new file mode 100644
-index 0000000..d9bbb73
+index 0000000..0ce4c35
 --- /dev/null
 +++ b/sysdeps/evalynos/sysdeps.cpp
-@@ -0,0 +1,208 @@
+@@ -0,0 +1,201 @@
 +#include <abi-bits/errno.h>
 +#include <bits/ensure.h>
 +#include <cstdint>
@@ -604,7 +604,7 @@ index 0000000..d9bbb73
 +#define SYS_OPEN 4
 +#define SYS_READ 5
 +#define SYS_SEEK 6
-+
++#define SYS_EXIT 8
 +
 +uint64_t syscall1(uint64_t syscall_type, uint64_t arg1) {
 +    uint64_t ret;
@@ -787,14 +787,7 @@ index 0000000..d9bbb73
 +    int sys_clock_get(int , time_t *, long *) { STUB(); }
 +
 +    void sys_exit(int status) {
-+        if (status < 0) {
-+            syscall_print("Exited with error");
-+        } else {
-+            syscall_print("Exited normally");
-+        }
-+        while (1) {
-+
-+        }
++        syscall1(SYS_EXIT, status);
 +        __builtin_unreachable();
 +    }
 +

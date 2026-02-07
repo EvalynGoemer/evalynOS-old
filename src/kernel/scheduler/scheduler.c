@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include <scheduler/scheduler.h>
+#include <scheduler/workers/reaper.h>
 #include <drivers/x86_64/fred/fred.h>
 #include <scheduler/switch.h>
 #include <filesystem/filesystem.h>
@@ -24,7 +25,7 @@ void task_quit() {
     }
 }
 
-struct thread_node* threads = NULL;
+struct thread* threads = NULL;
 int next_thread_id = 0;
 
 void create_thread(void (*entry_point)(void*), pagemap_t *pagemap) {
@@ -76,26 +77,39 @@ void create_thread(void (*entry_point)(void*), pagemap_t *pagemap) {
 
     new_thread->krsp = (uint64_t)stack;
 
-    struct thread_node* new_node = malloc(sizeof(struct thread_node));
-    new_node->thread = new_thread;
-
     if (!had_threads) {
-        new_node->next_thread = new_node;
-        threads = new_node;
+        threads = new_thread;
+        new_thread->next_thread = new_thread;
     } else {
-        new_node->next_thread = threads->next_thread;
-        threads->next_thread = new_node;
+        new_thread->next_thread = threads->next_thread;
+        threads->next_thread = new_thread;
     }
 }
 
 void schedule() {
-    struct thread *previous_thread = threads->thread;
+    struct thread *previous_thread = threads;
     threads = threads->next_thread;
-    struct thread *current_thread = threads->thread;
+    struct thread *current_thread = threads;
 
-    while (threads->thread->sleep_awake_time > timer_get_ms()) {
+    while (threads->sleep_awake_time > timer_get_ms()) {
         threads = threads->next_thread;
-        current_thread = threads->thread;
+        current_thread = threads;
+    }
+
+    while (current_thread->thread_state == THREAD_STATE_REAPING) {
+        struct thread *to_reap = current_thread;
+        previous_thread->next_thread = current_thread->next_thread;
+        threads = current_thread->next_thread;
+        current_thread = threads;
+        to_reap->next_thread = NULL;
+
+        if (threads_to_reap == NULL) {
+            threads_to_reap = to_reap;
+        } else {
+            to_reap->next_thread = threads_to_reap;
+            threads_to_reap = to_reap;
+        }
+
     }
 
     if (current_thread == previous_thread) {
@@ -126,5 +140,5 @@ void schedule() {
 }
 
 struct thread *get_current_thread() {
-    return threads->thread;
+    return threads;
 }

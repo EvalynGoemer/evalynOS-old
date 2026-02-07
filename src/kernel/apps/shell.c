@@ -232,9 +232,6 @@ void execute_commands(const char *cmd) {
         pagemap_t* pagemap = new_pagemap();
         create_thread(doom_kthread, pagemap);
         printf("Started playing DOOM in userspace\n");
-        while (1) {
-            schedule();
-        }
         return;
     }
     if ((strcmp("CLEAR", to_upper(cmd)) == 0) || (strcmp("CLS", to_upper(cmd)) == 0)) {

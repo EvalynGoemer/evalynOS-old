@@ -165,3 +165,54 @@ pagemap_t *new_pagemap() {
     RB_INSERT(vmm_valloc_tree, &new_pagemap->free_ranges, free_range);
     return new_pagemap;
 }
+
+void delete_pagemap(pagemap_t* pagemap) {
+    if (!pagemap || !pagemap->top_level)
+        return;
+    for (int a = 0; a < 256; a++) {
+        uint64_t pml4p_phys = pagemap->top_level[a] & PTE_MASK;
+        if (pml4p_phys == 0)
+            continue;
+        uint64_t* pml4v = (uint64_t*)(pml4p_phys + hhdm_request.response->offset);
+        for (int j = 0; j < 512; j++) {
+            uint64_t pml3p_phys = pml4v[j] & PTE_MASK;
+            if (pml3p_phys == 0)
+                continue;
+            uint64_t* pml3v = (uint64_t*)(pml3p_phys + hhdm_request.response->offset);
+            for (int k = 0; k < 512; k++) {
+                uint64_t pml2p_phys = pml3v[k] & PTE_MASK;
+                if (pml2p_phys == 0)
+                    continue;
+                uint64_t* pml2v = (uint64_t*)(pml2p_phys + hhdm_request.response->offset);
+                for (int l = 0; l < 512; l++) {
+                    uint64_t pml1p_phys = pml2v[l] & PTE_MASK;
+                    if (pml1p_phys != 0) {
+                        free_page((void*)pml1p_phys);
+                        pml2v[l] = 0;
+                    }
+                }
+                free_page((void*)pml2p_phys);
+                pml3v[k] = 0;
+            }
+            free_page((void*)pml3p_phys);
+            pml4v[j] = 0;
+        }
+        free_page((void*)pml4p_phys);
+        pagemap->top_level[a] = 0;
+    }
+    uintptr_t top_phys = (uintptr_t)pagemap->top_level - hhdm_request.response->offset;
+    free_page((void*)top_phys);
+    pagemap->top_level = NULL;
+
+    vmm_page_range_t *curr = NULL;
+    vmm_page_range_t *next = NULL;
+    RB_FOREACH_SAFE(curr, vmm_valloc_tree, &pagemap->free_ranges, next) {
+        RB_REMOVE(vmm_valloc_tree, &pagemap->free_ranges, curr);
+        free(curr);
+    }
+    RB_FOREACH_SAFE(curr, vmm_valloc_tree, &pagemap->used_ranges, next) {
+        RB_REMOVE(vmm_valloc_tree, &pagemap->used_ranges, curr);
+        free(curr);
+    }
+    free(pagemap);
+}

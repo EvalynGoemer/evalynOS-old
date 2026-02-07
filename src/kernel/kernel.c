@@ -42,14 +42,10 @@
 #include <filesystem/filesystem.h>
 #include <filesystem/tarfs/tarfs.h>
 #include <scheduler/scheduler.h>
+#include <scheduler/workers/idle.h>
+#include <scheduler/workers/reaper.h>
 #include <scheduler/switch.h>
 #include <apps/shell.h>
-
-void idle_thread() {
-    while (1) {
-        asm("hlt");
-    }
-}
 
 void kmain(void) {
     if (LIMINE_BASE_REVISION_SUPPORTED(limine_base_revision) == false) {
@@ -137,6 +133,7 @@ void kmain(void) {
     }
 
     create_thread(idle_thread, NULL);
+    create_thread(reaper_thread, NULL);
     create_thread(start_shell, NULL);
     shouldSchedule = 1;
 

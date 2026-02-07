@@ -189,13 +189,21 @@ void *allocate_page() {
 }
 
 void free_page(void *page) {
-    used_pages--;
-
     uint64_t phys_addr = (uint64_t)page;
     page_t *info = get_page_info((void *)phys_addr);
 
+    if (!info)
+        return;
+
     if (!info->used)
         panic("PMM: Double free");
+
+    if (info->ref_count > 1) {
+        info->ref_count--;
+        return;
+    }
+
+    used_pages--;
 
     info->used = false;
     info->clean = false;
