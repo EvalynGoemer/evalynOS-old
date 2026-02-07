@@ -46,7 +46,10 @@ typedef struct pagemap {
 } pagemap_t;
 
 extern void valloc_init();
+[[clang::overloadable]] extern uint64_t valloc(uint64_t size);
+[[clang::overloadable]] extern uint64_t valloc(uint64_t size, uint64_t fixed_addr);
 [[clang::overloadable]] extern uint64_t valloc(pagemap_t* pagemap, uint64_t size);
 [[clang::overloadable]] extern uint64_t valloc(pagemap_t* pagemap, uint64_t size, uint64_t fixed_addr);
 [[clang::overloadable]] extern uint64_t valloc(pagemap_t* pagemap, uint64_t size, uint64_t fixed_addr, bool noreplace);
-extern uint64_t vfree(pagemap_t* pagemap, uint64_t vaddr, uint64_t size);
+[[clang::overloadable]] extern uint64_t vfree(pagemap_t* pagemap, uint64_t vaddr, uint64_t size);
+[[clang::overloadable]] extern uint64_t vfree(uint64_t vaddr, uint64_t size);

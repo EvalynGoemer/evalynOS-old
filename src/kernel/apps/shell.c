@@ -19,6 +19,7 @@
 #include "shell.h"
 
 void badapple_kthread() {
+    valloc(get_current_thread()->pagemap, 64 * 1024, 0x80000000);
     uintptr_t stack_top = 0x80000000;
     size_t stack_size = 64 * 1024;
 
@@ -46,7 +47,8 @@ void badapple_kthread() {
         asm volatile ("swapgs");
     }
 
-    uint64_t start_addr = load_elf(elf_file);
+    uint64_t start_addr = load_elf(elf_file, get_current_thread()->pagemap);
+    free(elf_file);
     if (start_addr != 0) {
         if (fred_enbled) {
             fred_switch_to_user(start_addr, stack_top);
@@ -57,6 +59,7 @@ void badapple_kthread() {
 }
 
 void helloWorld_kthread() {
+    valloc(get_current_thread()->pagemap, 64 * 1024, 0x80000000);
     uintptr_t stack_top = 0x80000000;
     size_t stack_size = 64 * 1024;
 
@@ -84,7 +87,8 @@ void helloWorld_kthread() {
         asm volatile ("swapgs");
     }
 
-    uint64_t start_addr = load_elf(elf_file);
+    uint64_t start_addr = load_elf(elf_file, get_current_thread()->pagemap);
+    free(elf_file);
     if (start_addr != 0) {
         if (fred_enbled) {
             fred_switch_to_user(start_addr, stack_top);
@@ -95,6 +99,7 @@ void helloWorld_kthread() {
 }
 
 void doom_kthread() {
+    valloc(get_current_thread()->pagemap, 64 * 1024, 0x80000000);
     uintptr_t stack_top = 0x80000000;
     size_t stack_size = 64 * 1024;
 
@@ -122,7 +127,8 @@ void doom_kthread() {
         asm volatile ("swapgs");
     }
 
-    uint64_t start_addr = load_elf(elf_file);
+    uint64_t start_addr = load_elf(elf_file, get_current_thread()->pagemap);
+    free(elf_file);
     if (start_addr != 0) {
         if (fred_enbled) {
             fred_switch_to_user(start_addr, stack_top);

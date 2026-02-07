@@ -1,9 +1,15 @@
 #include <stddef.h>
+#include <string.h>
 #include <memory/heap.h>
 #include <stdbool.h>
 
 void* malloc(size_t size) {
     return kmalloc(size);
+}
+void *zalloc(size_t size) {
+    void *ptr = kmalloc(size);
+    memset(ptr, 0, size);
+    return ptr;
 }
 
 void free (void *ptr) {

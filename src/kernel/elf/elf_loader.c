@@ -1,3 +1,4 @@
+#include "memory/vma.h"
 #include <stdint.h>
 #include <stdio.h>
 
@@ -11,7 +12,7 @@
 
 #define ALIGN_UP(value, align) (((value) + (align) - 1) & ~((align) - 1))
 
-uint64_t load_elf(void* file) {
+uint64_t load_elf(void* file, pagemap_t* pagemap) {
     if (!verify_elf_64(file)) {
         printf("ELF: Failed to load ELF file; VALIDATION FAILED\n");
         return 0;
@@ -42,6 +43,8 @@ uint64_t load_elf(void* file) {
             currentVirtAddr = ph->virt_addr;
         }
 
+        valloc(pagemap, ph->mem_size, currentVirtAddr);
+
         uint64_t fileRemaining = ph->file_size;
         uint64_t memRemaining  = ph->mem_size;
         uint8_t* src = (uint8_t*)file + ph->offset;
@@ -49,7 +52,7 @@ uint64_t load_elf(void* file) {
         for (uint64_t p = 0; p < pagesToMap; p++) {
             uint64_t ppage = (uint64_t)allocate_page();
             uint64_t vpage =  ppage + hhdm_request.response->offset;
-            vmm_map_page(get_current_thread()->pagemap, currentVirtAddr, ppage, pte_flags);
+            vmm_map_page(pagemap, currentVirtAddr, ppage, pte_flags);
 
             uint64_t toCopy = fileRemaining > PAGE_SIZE ? PAGE_SIZE : fileRemaining;
             if (toCopy)

@@ -1,6 +1,7 @@
 #include "elf/elf.h"
 #include "elf/elf_structs.h"
 #include "limine.h"
+#include "obsd-tree.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <stddef.h>
@@ -156,7 +157,11 @@ pagemap_t *new_pagemap() {
 
     memset(pml4_virt, 0, PAGE_SIZE / 2);
 
-    pagemap_t *new_pagemap = malloc(sizeof(pagemap_t));
+    pagemap_t *new_pagemap = zalloc(sizeof(pagemap_t));
     new_pagemap->top_level = pml4_virt;
+    vmm_page_range_t *free_range = zalloc(sizeof(vmm_page_range_t));
+    free_range->vaddr = 0x1000;
+    free_range->size  = 400000000000 - 0x1000;
+    RB_INSERT(vmm_valloc_tree, &new_pagemap->free_ranges, free_range);
     return new_pagemap;
 }

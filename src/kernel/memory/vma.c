@@ -123,11 +123,19 @@ void valloc_init() {
     return fixed_addr;
 }
 
+[[clang::overloadable]] uint64_t valloc(uint64_t size) {
+    return valloc(&kernel_pagemap, size);
+}
+
+[[clang::overloadable]] uint64_t valloc(uint64_t size, uint64_t fixed_addr) {
+    return valloc(&kernel_pagemap, size, fixed_addr, false);
+}
+
 [[clang::overloadable]] uint64_t valloc(pagemap_t* pagemap, uint64_t size, uint64_t fixed_addr) {
     return valloc(pagemap, size, fixed_addr, false);
 }
 
-uint64_t vfree(pagemap_t* pagemap, uint64_t vaddr, uint64_t size) {
+[[clang::overloadable]] uint64_t vfree(pagemap_t* pagemap, uint64_t vaddr, uint64_t size) {
     if (!IS_ALIGNED(vaddr, PAGE_SIZE)) {
         return false;
     }
@@ -178,4 +186,8 @@ uint64_t vfree(pagemap_t* pagemap, uint64_t vaddr, uint64_t size) {
     }
 
     return 3;
+}
+
+[[clang::overloadable]] uint64_t vfree(uint64_t vaddr, uint64_t size) {
+    return vfree(&kernel_pagemap, vaddr, size);
 }
