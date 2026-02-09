@@ -4,16 +4,18 @@
 #include <stdbool.h>
 
 void* malloc(size_t size) {
-    return kmalloc(size);
-}
-void *zalloc(size_t size) {
-    void *ptr = kmalloc(size);
-    memset(ptr, 0, size);
-    return ptr;
+    void* result = kmalloc(size);
+    return result;
 }
 
 void free (void *ptr) {
     kfree(ptr);
+}
+
+void *zalloc(size_t size) {
+    void *ptr = kmalloc(size);
+    memset(ptr, 0, size);
+    return ptr;
 }
 
 long long int strtoll(const char* str, char** _, int base) {

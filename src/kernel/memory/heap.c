@@ -45,9 +45,21 @@
 #include <string.h>
 
 #include <utils/globals.h>
+#include <utils/spinlock.h>
 #include <utils/panic.h>
 #include <memory/pmm.h>
 #include <memory/vmm.h>
+
+#define USER_TOP    0x0000800000000000ULL
+#define KERNEL_BASE 0xFFFF800000000000ULL
+
+static inline bool is_kernel_range(const void *p, uint64_t len) {
+    uint64_t a = (uint64_t) p;
+    bool wrap = len > ~a;
+    return !wrap && (a & (a+len) & KERNEL_BASE) == KERNEL_BASE;
+}
+
+#define is_user_range(ptr, len) ({ !is_kernel_range(ptr, len); })
 
 typedef struct heap_free_block {
     size_t size;
@@ -60,12 +72,14 @@ typedef struct heap_free_block {
 #define ALIGN_UP_HEAP(size) (((size) + HEAP_ALIGNMENT - 1) & ~(HEAP_ALIGNMENT - 1))
 
 #define KERNEL_HEAP_START 0xFFFFF00000000000
-#define INITIAL_HEAP_PAGES 256
+#define INITIAL_HEAP_PAGES 0x4096
 #define KERNEL_HEAP_INITIAL_SIZE (INITIAL_HEAP_PAGES * PAGE_SIZE)
 
 static void *heap_start = NULL;
 static size_t heap_size = 0;
 static heap_free_block_t *free_list_head = NULL;
+
+spinlock_t heap_spinlock = {ATOMIC_FLAG_INIT};
 
 int heap_expand_pages(size_t pages) {
     if (pages == 0) return 0;
@@ -83,6 +97,7 @@ int heap_expand_pages(size_t pages) {
         vmm_map_page(&kernel_pagemap, virt, (uintptr_t)phys, PTE_PRESENT | PTE_WRITABLE | PTE_NX);
     }
 
+    bool lock1r = spinlock_lock(&heap_spinlock);
     heap_free_block_t *new_block = (heap_free_block_t *)base;
     new_block->size = new_region_size;
     new_block->next = NULL;
@@ -113,6 +128,7 @@ int heap_expand_pages(size_t pages) {
             p->next = new_block->next;
         }
     }
+    spinlock_unlock(&heap_spinlock, lock1r);
 
     heap_size += new_region_size;
     return 1;
@@ -146,6 +162,9 @@ void heap_dump(void) {
 
 void *kmalloc(size_t size) {
     if (size == 0) return NULL;
+
+    bool lock1r = spinlock_lock(&heap_spinlock);
+
     size_t payload = ALIGN_UP_HEAP(size);
     size_t header_sz = ALIGN_UP_HEAP(sizeof(size_t));
     size_t total_size = payload + header_sz;
@@ -182,12 +201,14 @@ void *kmalloc(size_t size) {
             *size_ptr = curr->size;
 
             void *user_ptr = (void *)((uintptr_t)curr + header_sz);
+            spinlock_unlock(&heap_spinlock, lock1r);
             return user_ptr;
         }
         prev = curr;
         curr = curr->next;
     }
 
+    spinlock_unlock(&heap_spinlock, lock1r);
     if (!heap_expand_pages(16)) {
         if (!heap_expand_pages(1)) {
             printf("kmalloc: Out of heap memory (requested %lx bytes)\n", size);
@@ -195,13 +216,17 @@ void *kmalloc(size_t size) {
             return NULL;
         }
     }
+    lock1r = spinlock_lock(&heap_spinlock);
     prev = NULL;
     curr = free_list_head;
     goto retry_search;
 }
 
 void kfree(void *ptr) {
-    if (!ptr) return;
+    if (!is_kernel_range(ptr, 4096)) {
+        printf("kHEAP: Attempted to free user memory @ 0x%llx", (uint64_t)ptr);
+        panic("kHEAP: Attempted to free user memory");
+    }
 
     size_t header_sz = ALIGN_UP_HEAP(sizeof(size_t));
     size_t *size_ptr = (size_t *)((uintptr_t)ptr - header_sz);
@@ -211,7 +236,7 @@ void kfree(void *ptr) {
     if ((uintptr_t)block_start < (uintptr_t)heap_start ||
         (uintptr_t)block_start >= (uintptr_t)heap_start + heap_size) {
         panic("kfree: invalid pointer (out of heap range)");
-    return;
+        return;
         }
         if (block_size < MIN_ALLOC_SIZE) {
             panic("kfree: invalid block size");
@@ -248,28 +273,4 @@ void kfree(void *ptr) {
             prev->size += freed->size;
             prev->next = freed->next;
         }
-}
-
-void *kcalloc(size_t num, size_t size) {
-    if (size != 0 && num > (SIZE_MAX / size)) return NULL;
-    size_t total = num * size;
-    void *p = kmalloc(total);
-    if (p) memset(p, 0, total);
-    return p;
-}
-
-void *krealloc(void *ptr, size_t new_size) {
-    if (!ptr) return kmalloc(new_size);
-    if (new_size == 0) { kfree(ptr); return NULL; }
-
-    size_t header_sz = ALIGN_UP_HEAP(sizeof(size_t));
-    size_t old_total = *((size_t *)((uintptr_t)ptr - header_sz));
-    size_t old_payload = (old_total >= header_sz) ? (old_total - header_sz) : 0;
-    if (new_size <= old_payload) return ptr;
-
-    void *n = kmalloc(new_size);
-    if (!n) return NULL;
-    memcpy(n, ptr, old_payload);
-    kfree(ptr);
-    return n;
 }

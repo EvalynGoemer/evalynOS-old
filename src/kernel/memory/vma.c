@@ -1,9 +1,12 @@
 #include <memory/vmm.h>
 #include <memory/vma.h>
 #include <utils/macros.h>
+#include <utils/spinlock.h>
 #include <stdlib.h>
 
 RB_GENERATE(vmm_valloc_tree, vmm_page_range, node, vmm_cmp_range);
+
+spinlock_t vma_spinlock = {ATOMIC_FLAG_INIT};
 
 void valloc_init() {
     vmm_page_range_t *free_range = malloc(sizeof(vmm_page_range_t));
@@ -18,9 +21,12 @@ void valloc_init() {
         return 0;
     }
 
+    bool lock1r = spinlock_lock(&vma_spinlock);
+
     size = ALIGN_UP(size, PAGE_SIZE);
 
     if (RB_EMPTY(&pagemap->free_ranges)) {
+        spinlock_unlock(&vma_spinlock, lock1r);
         return 0;
     }
 
@@ -33,6 +39,7 @@ void valloc_init() {
     }
 
     if (!range || range->size < size) {
+        spinlock_unlock(&vma_spinlock, lock1r);
         return 0;
     }
 
@@ -40,6 +47,7 @@ void valloc_init() {
 
     if (range->size == size) {
         RB_INSERT(vmm_valloc_tree, &pagemap->used_ranges, range);
+        spinlock_unlock(&vma_spinlock, lock1r);
         return range->vaddr;
     }
 
@@ -54,6 +62,7 @@ void valloc_init() {
     RB_INSERT(vmm_valloc_tree, &pagemap->free_ranges, range);
     RB_INSERT(vmm_valloc_tree, &pagemap->used_ranges, split_range);
 
+    spinlock_unlock(&vma_spinlock, lock1r);
     return split_range->vaddr;
 }
 
@@ -63,15 +72,21 @@ void valloc_init() {
     }
     size = ALIGN_UP(size, PAGE_SIZE);
 
+    bool lock1r = spinlock_lock(&vma_spinlock);
+
     bool allocated_region = false;
     vmm_page_range_t usearch = {.vaddr = fixed_addr, .size = 0};
     vmm_page_range_t* uresult = RB_FIND(vmm_valloc_tree, &pagemap->used_ranges, &usearch);
     if (uresult)
         allocated_region = true;
-    if (noreplace && allocated_region)
+    if (noreplace && allocated_region) {
+        spinlock_unlock(&vma_spinlock, lock1r);
         return 0;
-    if (uresult && uresult->size >= size)
+    }
+    if (uresult && uresult->size >= size) {
+        spinlock_unlock(&vma_spinlock, lock1r);
         return fixed_addr;
+    }
     if (uresult && uresult->size < size) {
         fixed_addr += uresult->size;
         size -= uresult->size;
@@ -80,6 +95,7 @@ void valloc_init() {
     vmm_page_range_t fsearch = {.vaddr = fixed_addr, .size = 0};
     vmm_page_range_t* fresult = RB_FIND(vmm_valloc_tree, &pagemap->free_ranges, &fsearch);
     if (!fresult) {
+        spinlock_unlock(&vma_spinlock, lock1r);
         return 0;
     }
 
@@ -88,6 +104,7 @@ void valloc_init() {
     if (fixed_addr == fresult->vaddr) {
         if (size == fresult->size) {
             RB_INSERT(vmm_valloc_tree, &pagemap->used_ranges, fresult);
+            spinlock_unlock(&vma_spinlock, lock1r);
             return fresult->vaddr;
         }
         vmm_page_range_t *split_range = malloc(sizeof(vmm_page_range_t));
@@ -97,6 +114,7 @@ void valloc_init() {
         fresult->size  -= size;
         RB_INSERT(vmm_valloc_tree, &pagemap->free_ranges, fresult);
         RB_INSERT(vmm_valloc_tree, &pagemap->used_ranges, split_range);
+        spinlock_unlock(&vma_spinlock, lock1r);
         return split_range->vaddr;
     }
 
@@ -120,6 +138,7 @@ void valloc_init() {
         RB_INSERT(vmm_valloc_tree, &pagemap->free_ranges, post_range);
     }
 
+    spinlock_unlock(&vma_spinlock, lock1r);
     return fixed_addr;
 }
 
@@ -141,18 +160,25 @@ void valloc_init() {
     }
     size = ALIGN_UP(size, PAGE_SIZE);
 
+    bool lock1r = spinlock_lock(&vma_spinlock);
+
     vmm_page_range_t usearch = {.vaddr = vaddr, .size = 0};
     vmm_page_range_t* uresult = RB_FIND(vmm_valloc_tree, &pagemap->used_ranges, &usearch);
-    if (!uresult)
+    if (!uresult) {
         return false;
+        spinlock_unlock(&vma_spinlock, lock1r);
+    }
     // TODO: support vfree() calls that cross regions
-    if ((uresult->vaddr + uresult->size) < (vaddr + size))
+    if ((uresult->vaddr + uresult->size) < (vaddr + size)) {
         return false;
+        spinlock_unlock(&vma_spinlock, lock1r);
+    }
 
     RB_REMOVE(vmm_valloc_tree, &pagemap->used_ranges, uresult);
     if (uresult->vaddr == vaddr) {
         if (uresult->size == size) {
             RB_INSERT(vmm_valloc_tree, &pagemap->free_ranges, uresult);
+            spinlock_unlock(&vma_spinlock, lock1r);
             return 1;
         }
         vmm_page_range_t *split_range = malloc(sizeof(vmm_page_range_t));
@@ -162,6 +188,7 @@ void valloc_init() {
         uresult->size  -= size;
         RB_INSERT(vmm_valloc_tree, &pagemap->used_ranges, uresult);
         RB_INSERT(vmm_valloc_tree, &pagemap->free_ranges, split_range);
+        spinlock_unlock(&vma_spinlock, lock1r);
         return 2;
     }
 
@@ -185,6 +212,7 @@ void valloc_init() {
         RB_INSERT(vmm_valloc_tree, &pagemap->used_ranges, post_range);
     }
 
+    spinlock_unlock(&vma_spinlock, lock1r);
     return 3;
 }
 

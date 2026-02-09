@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdbool.h>
 #include <drivers/x86_64/crX.h>
 
 static inline void rflags_set_ac() {
@@ -13,3 +14,5 @@ static inline void rflags_clr_ac(void) {
         __asm__ volatile ("clac" ::: "cc");
     }
 }
+
+extern bool interrupts_enabled();

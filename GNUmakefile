@@ -1,6 +1,6 @@
 # This file was taken and modified from https://codeberg.org/Limine/limine-c-template/raw/commit/c8bc5a2b93397a19272a19a6004b0eeb1e90d982/kernel/GNUmakefile
 
-CFLAGS := -O2 -g -fno-omit-frame-pointer -DMUTE_KERNEL_PANIC
+CFLAGS := -O0 -g -fno-omit-frame-pointer -DMUTE_KERNEL_PANIC
 
 # Nuke built-in rules.
 .SUFFIXES:
@@ -62,11 +62,11 @@ override CFLAGS += \
     -Wall \
     -Wextra \
     -std=gnu11 \
-    -nostdinc \
     -flto \
     -ffreestanding \
     -fstack-protector-all \
     -fno-PIC \
+    -fno-pie \
     -ffunction-sections \
     -fdata-sections \
     -mgeneral-regs-only \
@@ -86,8 +86,11 @@ override CPPFLAGS := \
     -isystem src/kernel/libc \
     $(CPPFLAGS) \
     -DLIMINE_API_REVISION=4 \
+    -DFLANTERM_FB_BUMP_ALLOC_POOL_SIZE=0x180000 \
+    -DFLANTERM_FB_WIDTH_LIMIT=1920 \
+    -DFLANTERM_FB_HEIGHT_LIMIT=1080 \
     -MMD \
-    -MP
+    -MP \
 
 ifeq ($(ARCH),x86_64)
     # Internal nasm flags that should not be changed by the user.
@@ -115,6 +118,7 @@ endif
 # Internal linker flags that should not be changed by the user.
 override LDFLAGS += \
     -nostdlib \
+    --no-pie \
     -static \
     -z max-page-size=0x1000 \
     --gc-sections \
@@ -176,7 +180,8 @@ tcg:
 	cp ./bin-x86_64/kernel.elf ./src/generated/iso/kernel.elf
 	./src/build-scripts/generate-iso.sh
 	qemu-system-x86_64 \
-		-machine q35,accel=tcg \
+		-machine q35 \
+		-M accel=tcg,smm=on -d int -no-reboot -no-shutdown -D qemu_log.txt \
 		-m 512M \
 		-drive if=pflash,format=raw,readonly=on,file=./OVMF_CODE.4m.fd \
 		-drive if=pflash,format=raw,readonly=on,file=./OVMF_VARS.4m.fd \

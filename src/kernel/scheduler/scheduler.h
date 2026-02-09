@@ -13,7 +13,7 @@ struct fd {
 };
 
 struct thread {
-    int threadId;
+    uint64_t threadId;
 
     void* stack;
     void* stack_top;

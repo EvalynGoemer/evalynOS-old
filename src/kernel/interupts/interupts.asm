@@ -34,7 +34,6 @@ dispatch_interupt_asm:
 
     mov rdi, rsp
 
-    sti
     call dispatch_interupt
     cli
 

@@ -16,8 +16,10 @@
 #include <memory/vma.h>
 #include <stdlib.h>
 #include <utils/macros.h>
+#include <utils/spinlock.h>
 
 pagemap_t kernel_pagemap = {0};
+spinlock_t vmm_spinlock = {ATOMIC_FLAG_INIT};
 
 void vmm_switch_to(pagemap_t *pagemap) {
     uintptr_t cr3 = (uintptr_t)pagemap->top_level - hhdm_request.response->offset;
@@ -28,6 +30,7 @@ void vmm_switch_to(pagemap_t *pagemap) {
 }
 
 [[clang::overloadable]] void vmm_map_page(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr, uint64_t flags, uint64_t page_size) {
+    bool lock1r = spinlock_lock(&vmm_spinlock);
     uint16_t pml1i = (virt_addr >> 12) & 0x1ff;
     uint16_t pml2i = (virt_addr >> 21) & 0x1ff;
     uint16_t pml3i = (virt_addr >> 30) & 0x1ff;
@@ -43,6 +46,7 @@ void vmm_switch_to(pagemap_t *pagemap) {
     if (page_size == JUMBO_PAGE_SIZE) {
         pml3v[pml3i] = phys_addr & PTE_MASK;
         pml3v[pml3i] |= PTE_PRESENT | PTE_PS | flags;
+        spinlock_unlock(&vmm_spinlock, lock1r);
         return;
     }
     if (!(pml3v[pml3i] & PTE_PRESENT)) {
@@ -55,6 +59,7 @@ void vmm_switch_to(pagemap_t *pagemap) {
     if (page_size == LARGE_PAGE_SIZE) {
         pml2v[pml2i] = phys_addr & PTE_MASK;
         pml2v[pml2i] |= PTE_PRESENT | PTE_PS | flags;
+        spinlock_unlock(&vmm_spinlock, lock1r);
         return;
     }
     if (!(pml2v[pml2i] & PTE_PRESENT)) {
@@ -66,6 +71,7 @@ void vmm_switch_to(pagemap_t *pagemap) {
 
     pml1v[pml1i] = phys_addr & PTE_MASK;
     pml1v[pml1i] |= PTE_PRESENT | flags;
+    spinlock_unlock(&vmm_spinlock, lock1r);
 }
 
 void vmm_map_pages_continuous(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr, uint64_t page_count, uint64_t flags) {
@@ -148,6 +154,7 @@ void setup_vmm() {
 }
 
 pagemap_t *new_pagemap() {
+    bool lock1r = spinlock_lock(&vmm_spinlock);
     void *pml4_phys = allocate_page();
     if (pml4_phys == NULL) {
         panic("Failed to allocate new PML4 table page\n");
@@ -163,6 +170,7 @@ pagemap_t *new_pagemap() {
     free_range->vaddr = 0x1000;
     free_range->size  = 400000000000 - 0x1000;
     RB_INSERT(vmm_valloc_tree, &new_pagemap->free_ranges, free_range);
+    spinlock_unlock(&vmm_spinlock, lock1r);
     return new_pagemap;
 }
 

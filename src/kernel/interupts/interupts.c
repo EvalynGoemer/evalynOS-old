@@ -14,7 +14,7 @@ void dispatch_interupt (struct interrupt_frame *frame) {
         }
     }
 
-
+    asm volatile ("sti");
 
     switch (frame->vector) {
         case INTERRUPT_HANDLER_DOUBLE_FAULT:

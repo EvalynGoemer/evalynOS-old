@@ -1,3 +1,4 @@
+#include "utils/spinlock.h"
 #include <drivers/x86_64/apic/apic.h>
 #include <drivers/timer.h>
 #include <stddef.h>
@@ -25,10 +26,12 @@ void task_quit() {
     }
 }
 
+spinlock_t scheduler_spinlock = {ATOMIC_FLAG_INIT};
 struct thread* threads = NULL;
 int next_thread_id = 0;
 
 void create_thread(void (*entry_point)(void*), pagemap_t *pagemap) {
+    bool lock1r = spinlock_lock(&scheduler_spinlock);
     bool had_threads = (threads != NULL);
 
     struct thread* new_thread = malloc(sizeof(struct thread));
@@ -84,9 +87,11 @@ void create_thread(void (*entry_point)(void*), pagemap_t *pagemap) {
         new_thread->next_thread = threads->next_thread;
         threads->next_thread = new_thread;
     }
+    spinlock_unlock(&scheduler_spinlock, lock1r);
 }
 
 void schedule() {
+    bool lock1r = spinlock_lock(&scheduler_spinlock);
     struct thread *previous_thread = threads;
     threads = threads->next_thread;
     struct thread *current_thread = threads;
@@ -97,6 +102,7 @@ void schedule() {
     }
 
     while (current_thread->thread_state == THREAD_STATE_REAPING) {
+        bool lock2r = spinlock_lock(&reaper_spinlock);
         struct thread *to_reap = current_thread;
         previous_thread->next_thread = current_thread->next_thread;
         threads = current_thread->next_thread;
@@ -109,10 +115,11 @@ void schedule() {
             to_reap->next_thread = threads_to_reap;
             threads_to_reap = to_reap;
         }
-
+        spinlock_unlock(&reaper_spinlock, lock2r);
     }
 
     if (current_thread == previous_thread) {
+        spinlock_unlock(&scheduler_spinlock, lock1r);
         return;
     }
 
@@ -136,6 +143,7 @@ void schedule() {
 
     wrmsr(UGSBAS, (uint64_t)current_thread);
 
+    spinlock_unlock(&scheduler_spinlock, lock1r);
     thread_switch(&previous_thread->krsp, current_thread->krsp);
 }
 

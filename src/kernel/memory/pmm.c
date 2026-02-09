@@ -8,9 +8,12 @@
 #include <string.h>
 #include <utils/panic.h>
 #include <utils/globals.h>
+#include <utils/spinlock.h>
 
 // TODO
 // - Turn into buddy allocator
+
+spinlock_t pmm_spinlock = {ATOMIC_FLAG_INIT};
 
 #define PAGE_SIZE 4096
 #define ALIGN_UP(x, align) ((((uintptr_t) (x)) + ((align) - 1)) & ~((uintptr_t) ((align) - 1)))
@@ -155,11 +158,13 @@ void *allocate_page() {
     if (!freelist_head)
         panic("PMM: Out of memory");
 
-    used_pages++;
-
-    if (used_pages > total_pages) {
+    if (used_pages >= total_pages) {
         panic("PMM: Out of memory");
     }
+
+    bool lock1r = spinlock_lock(&pmm_spinlock);
+
+    used_pages++;
 
     pmm_freelist_node_t *node = freelist_head;
     uint64_t phys_addr = node->start;
@@ -185,6 +190,8 @@ void *allocate_page() {
         }
     }
 
+    spinlock_unlock(&pmm_spinlock, lock1r);
+
     return (void*)(uintptr_t)phys_addr;
 }
 
@@ -198,8 +205,11 @@ void free_page(void *page) {
     if (!info->used)
         panic("PMM: Double free");
 
+    bool lock1r = spinlock_lock(&pmm_spinlock);
+
     if (info->ref_count > 1) {
         info->ref_count--;
+        spinlock_unlock(&pmm_spinlock, lock1r);
         return;
     }
 
@@ -212,11 +222,13 @@ void free_page(void *page) {
     if (freelist_head) {
         if (phys_addr + PAGE_SIZE == freelist_head->start) {
             freelist_head->start = phys_addr;
+            spinlock_unlock(&pmm_spinlock, lock1r);
             return;
         }
 
         if (freelist_head->end == phys_addr) {
             freelist_head->end += PAGE_SIZE;
+            spinlock_unlock(&pmm_spinlock, lock1r);
             return;
         }
     }
@@ -226,4 +238,5 @@ void free_page(void *page) {
     node->end = phys_addr + PAGE_SIZE;
     node->next = freelist_head;
     freelist_head = node;
+    spinlock_unlock(&pmm_spinlock, lock1r);
 }

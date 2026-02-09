@@ -28,6 +28,7 @@ thread_switch:
 USER_STACK_TOP equ 0x0000000080000000
 
 switch_to_user:
+    swapgs
     mov ax, 0x20 | 3
     mov ds, ax
     mov es, ax

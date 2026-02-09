@@ -17,6 +17,7 @@
 #include <elf/elf.h>
 
 #include "shell.h"
+#include "drivers/timer.h"
 
 void badapple_kthread() {
     valloc(get_current_thread()->pagemap, 64 * 1024, 0x80000000);
@@ -42,10 +43,6 @@ void badapple_kthread() {
     void* elf_file = malloc(16 * 1024 * 1024);
 
     fs_read("/badapple.elf", elf_file, 16 * 1024 * 1024);
-
-    if (!fred_enbled) {
-        asm volatile ("swapgs");
-    }
 
     uint64_t start_addr = load_elf(elf_file, get_current_thread()->pagemap);
     free(elf_file);
@@ -83,10 +80,6 @@ void helloWorld_kthread() {
 
     fs_read("/hello_world.elf", elf_file, 16 * 1024 * 1024);
 
-    if (!fred_enbled) {
-        asm volatile ("swapgs");
-    }
-
     uint64_t start_addr = load_elf(elf_file, get_current_thread()->pagemap);
     free(elf_file);
     if (start_addr != 0) {
@@ -122,10 +115,6 @@ void doom_kthread() {
     void* elf_file = malloc(16 * 1024 * 1024);
 
     fs_read("/doomgeneric.elf", elf_file, 16 * 1024 * 1024);
-
-    if (!fred_enbled) {
-        asm volatile ("swapgs");
-    }
 
     uint64_t start_addr = load_elf(elf_file, get_current_thread()->pagemap);
     free(elf_file);
@@ -226,6 +215,21 @@ void execute_commands(const char *cmd) {
         pagemap_t* pagemap = new_pagemap();
         create_thread(helloWorld_kthread, pagemap);
         printf("Started playing HELLO in userspace\n");
+        return;
+    }
+    if (strcmp("FIREWORKS", to_upper(cmd)) == 0) {
+        printf("Started fireworks test with HELLO.elf {16k Iterations; 1 to 5ms delay}\n");
+        for (int i = 0; i < 16 * 1024; i++) {
+            if (i % 100 == 0)
+                printf("FIREWORKS: Spawning #%d\n", i);
+            uint64_t tsc = __rdtsc();
+            int sleep_time = (tsc % 5) + 1;
+            pagemap_t* pagemap = new_pagemap();
+            create_thread(helloWorld_kthread, pagemap);
+            timer_blocking_sleep_ms(sleep_time);
+            if (i % 10 == 0)
+                schedule();
+        }
         return;
     }
     if (strcmp("DOOM", to_upper(cmd)) == 0) {
