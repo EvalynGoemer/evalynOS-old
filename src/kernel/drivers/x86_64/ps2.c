@@ -1,3 +1,5 @@
+#include "utils/spinlock.h"
+#include <stdatomic.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -14,6 +16,7 @@
 #define PS2_STATUS_INPUT_BUFFER_FULL 0x02
 #define PS2_STATUS_OUTPUT_BUFFER_FULL 0x01
 
+spinlock_t ps2Kbd_buffer_lock = {ATOMIC_FLAG_INIT};
 volatile uint8_t ps2Kbd_buffer_head = 0;
 volatile uint8_t ps2Kbd_buffer_tail = 0;
 volatile char ps2Kbd_buffer[256] = {'\0'};
@@ -24,17 +27,15 @@ static inline void io_wait() {
 
 int ps2KbdDeviceRead(__attribute__((unused)) char* path, char* return_data, int read_length) {
     int bytes_read = 0;
-
+    bool lock1r = spinlock_lock(&ps2Kbd_buffer_lock);
     for (int i = 0; i < read_length; i++) {
-        if (ps2Kbd_buffer_head == ps2Kbd_buffer_tail) {
+        if (ps2Kbd_buffer_head == ps2Kbd_buffer_tail)
             break;
-        }
         return_data[i] = ps2Kbd_buffer[ps2Kbd_buffer_tail];
         ps2Kbd_buffer_tail++;
-
         bytes_read++;
     }
-
+    spinlock_unlock(&ps2Kbd_buffer_lock, lock1r);
     return bytes_read;
 }
 

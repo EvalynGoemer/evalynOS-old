@@ -223,6 +223,7 @@ void *kmalloc(size_t size) {
 }
 
 void kfree(void *ptr) {
+    bool lock1r = spinlock_lock(&heap_spinlock);
     if (!is_kernel_range(ptr, 4096)) {
         printf("kHEAP: Attempted to free user memory @ 0x%llx", (uint64_t)ptr);
         panic("kHEAP: Attempted to free user memory");
@@ -273,4 +274,5 @@ void kfree(void *ptr) {
             prev->size += freed->size;
             prev->next = freed->next;
         }
+    spinlock_unlock(&heap_spinlock, lock1r);
 }

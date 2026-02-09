@@ -1,5 +1,6 @@
 #include "drivers/x86_64/irq.h"
 #include "drivers/x86_64/pic.h"
+#include "utils/spinlock.h"
 #include <stdbool.h>
 
 #include <drivers/x86_64/ports.h>
@@ -21,7 +22,6 @@ int mouse_ptr = 0;
 unsigned char mouse_buffer[4] = {0,0,0,0};
 
 void ps2_isr() {
-
     unsigned char status = inb(0x64);
 
     while(status & 1) {
@@ -65,11 +65,13 @@ void ps2_isr() {
             }
 
             raw: {}
+            bool lock1r = spinlock_lock(&ps2Kbd_buffer_lock);
             uint8_t next_head = ps2Kbd_buffer_head + 1;
             if (next_head != ps2Kbd_buffer_tail) {
                 ps2Kbd_buffer[ps2Kbd_buffer_head] = scancode;
                 ps2Kbd_buffer_head = next_head;
             }
+            spinlock_unlock(&ps2Kbd_buffer_lock, lock1r);
         } else {
             // mouse
             mouse_buffer[mouse_ptr++] = scancode;
