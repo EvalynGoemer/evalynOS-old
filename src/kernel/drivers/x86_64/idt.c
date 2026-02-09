@@ -45,6 +45,7 @@ void setup_idt() {
 
     set_idt_entry(INTERRUPT_HANDLER_PIT, 0, 0x8E, (void (*)())isr0x20);
     set_idt_entry(INTERRUPT_HANDLER_PS2, 0, 0x8E, (void (*)())isr0x21);
+    set_idt_entry(INTERRUPT_HANDLER_PS2_MOUSE, 0, 0x8E, (void (*)())isr0x21); // ps2 mouse and ps2 kbd are connected 
     set_idt_entry(INTERRUPT_HANDLER_SERIAL, 0, 0x8E, (void (*)())isr0x24);
     set_idt_entry(INTERRUPT_HANDLER_APIC_TIMER, 0, 0x8E, (void (*)())isr0x30);
 

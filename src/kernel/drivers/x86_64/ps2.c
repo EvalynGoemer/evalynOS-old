@@ -59,8 +59,7 @@ void setup_ps2() {
 
     uint8_t status = inb(PS2_DATA_PORT);
     io_wait();
-    status |=1;
-    status &= ~(1 << 1);
+    status |= (1 << 0) | (1 << 1) | (1 << 6);
 
     outb(PS2_COMMAND_PORT, 0x60);
     io_wait();
@@ -88,6 +87,24 @@ void setup_ps2() {
     outb(PS2_DATA_PORT, 0x02);
     io_wait();
 
+    outb(0x64,0xD4);
+    io_wait();
+
+    outb(0x60,0xF6);
+    io_wait();
+
+    outb(0x64,0xD4);
+    io_wait();
+
+    outb(0x60,0xF4);
+    io_wait();
+
+    // outb(PS2_COMMAND_PORT, 0xF6);
+    // io_wait();
+
+    // outb(PS2_COMMAND_PORT, 0xF4);
+    // io_wait();
+
     timeout = 50;
     while (timeout--) {
         if ((inb(PS2_STATUS_PORT) & 1) == 0) {
@@ -99,6 +116,7 @@ void setup_ps2() {
 
 
     unmask_irq(1);
+    unmask_irq(12);
 
     struct file* file = malloc(sizeof(struct file));
     strcpy(file->path, "/dev/ps2/kbd");
