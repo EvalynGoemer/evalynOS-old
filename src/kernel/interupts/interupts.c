@@ -6,6 +6,8 @@
 #include <drivers/x86_64/rflags.h>
 #include <drivers/timer.h>
 
+#include <stdio.h>
+
 void dispatch_interupt (struct interrupt_frame *frame) {
     if (frame->cs & 0x3) {
         rflags_clr_ac();
@@ -29,6 +31,7 @@ void dispatch_interupt (struct interrupt_frame *frame) {
         case INTERRUPT_HANDLER_PIT:
             // pit_isr();
             break;
+        case INTERRUPT_HANDLER_PS2_MOUSE:
         case INTERRUPT_HANDLER_PS2:
             ps2_isr();
             break;

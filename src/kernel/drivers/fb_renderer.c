@@ -8,7 +8,7 @@ int FB_WIDTH;
 int FB_HEIGHT;
 
 void plotPixel(int x, int y, uint32_t color) {
-    if (x >= FB_WIDTH || y >= FB_HEIGHT) {
+    if (x >= FB_WIDTH || y >= FB_HEIGHT || x < 0 || y < 0) {
         return;
     }
     *((volatile uint32_t*)framebuffer->address + y * (framebuffer->pitch >> 2) + x) = color;

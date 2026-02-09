@@ -14,6 +14,8 @@
 #include <scheduler/scheduler.h>
 #include <scheduler/switch.h>
 
+#include <drivers/mouse.h>
+
 #include <elf/elf.h>
 
 #include "shell.h"
@@ -253,6 +255,11 @@ void execute_commands(const char *cmd) {
     if (strcmp("FAULT", to_upper(cmd)) == 0) {
         volatile uint64_t *fault = (volatile uint64_t *)0xDEADBEEF;
         *fault = 0xDEADBEEF;
+        return;
+    }
+
+    if (strcmp("MOUSE_TEST", to_upper(cmd)) == 0) {
+        enable_mouse_test();
         return;
     }
 
