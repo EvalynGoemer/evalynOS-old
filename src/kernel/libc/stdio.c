@@ -23,10 +23,9 @@
 
 #include <utils/spinlock.h>
 
-[[gnu::aligned(64)]] spinlock_t putc_spinlock = {ATOMIC_FLAG_INIT};
+[[gnu::aligned(64)]] spinlock_t stdio_spinlock = {0};
 
 void internal_putc(int c, void *_) {
-    bool lock1r = spinlock_lock(&putc_spinlock);
     char ch = (char)c;
 
     flanterm_write(ft_ctx, &ch, 1);
@@ -38,14 +37,15 @@ void internal_putc(int c, void *_) {
     if(serial_works) {
         write_serial(&ch, 1);
     }
-    spinlock_unlock(&putc_spinlock, lock1r);
 }
 
 int printf(const char* fmt, ...) {
+    bool lock1r = spinlock_lock(&stdio_spinlock);
     va_list args;
     va_start(args, fmt);
     int ret = npf_vpprintf(internal_putc, NULL, fmt, args);
     va_end(args);
+    spinlock_unlock(&stdio_spinlock, lock1r);
     return ret;
 }
 

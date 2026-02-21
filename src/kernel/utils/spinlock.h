@@ -1,29 +1,34 @@
 #pragma once
 
-#include <stdatomic.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <drivers/x86_64/rflags.h>
 
 typedef struct {
-    atomic_flag lock;
+    uint32_t flag;
 } spinlock_t;
 
 static inline void spinlock_init(spinlock_t* spinlock) {
-    atomic_flag_clear(&spinlock->lock);
+    __atomic_store_n(&spinlock->flag, 0, __ATOMIC_RELAXED);
 }
 
-[[clang::overloadable]] [[nodiscard]] static inline bool spinlock_lock(spinlock_t* spinlock) {
+[[nodiscard]]
+static inline bool spinlock_lock(spinlock_t* spinlock) {
     bool irqs = interrupts_enabled();
-    asm volatile("cli");
-    while (atomic_flag_test_and_set_explicit(&spinlock->lock, memory_order_acquire))
-        asm volatile("pause");
+    asm volatile("cli" ::: "memory");
+    while (true) {
+        while (__atomic_load_n(&spinlock->flag, __ATOMIC_RELAXED))
+            asm volatile("pause");
+        if (!__atomic_exchange_n(&spinlock->flag, 1, __ATOMIC_ACQUIRE))
+            break;
+    }
     return irqs;
 }
 
-[[clang::overloadable]] static inline void spinlock_unlock(spinlock_t* spinlock, bool irqs) {
-    atomic_flag_clear_explicit(&spinlock->lock, memory_order_release);
+static inline void spinlock_unlock(spinlock_t* spinlock, bool irqs) {
+    __atomic_store_n(&spinlock->flag, 0, __ATOMIC_RELEASE);
     if (irqs)
-        asm volatile("sti");
+        asm volatile("sti" ::: "memory");
     else
-        asm volatile("cli");
+        asm volatile("cli" ::: "memory");
 }

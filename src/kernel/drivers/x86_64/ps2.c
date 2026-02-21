@@ -16,7 +16,7 @@
 #define PS2_STATUS_INPUT_BUFFER_FULL 0x02
 #define PS2_STATUS_OUTPUT_BUFFER_FULL 0x01
 
-spinlock_t ps2Kbd_buffer_lock = {ATOMIC_FLAG_INIT};
+spinlock_t ps2Kbd_buffer_lock = {0};
 volatile uint8_t ps2Kbd_buffer_head = 0;
 volatile uint8_t ps2Kbd_buffer_tail = 0;
 volatile char ps2Kbd_buffer[256] = {'\0'};

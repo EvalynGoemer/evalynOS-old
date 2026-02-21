@@ -2,7 +2,7 @@
 #include <utils/spinlock.h>
 #include <stdlib.h>
 
-spinlock_t reaper_spinlock = {ATOMIC_FLAG_INIT};
+spinlock_t reaper_spinlock = {0};
 struct thread* threads_to_reap = NULL;
 
 struct thread* get_next_thread_to_reap() {

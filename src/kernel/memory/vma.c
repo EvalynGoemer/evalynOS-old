@@ -6,7 +6,7 @@
 
 RB_GENERATE(vmm_valloc_tree, vmm_page_range, node, vmm_cmp_range);
 
-spinlock_t vma_spinlock = {ATOMIC_FLAG_INIT};
+spinlock_t vma_spinlock = {0};
 
 void valloc_init() {
     vmm_page_range_t *free_range = malloc(sizeof(vmm_page_range_t));

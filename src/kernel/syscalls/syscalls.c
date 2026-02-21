@@ -23,7 +23,7 @@ void init_syscall() {
     wrmsr(STAR, star);
 
     wrmsr(LSTAR, (uint64_t)syscall_handler);
-    wrmsr(SFMASK, ~0x2);
+    wrmsr(SFMASK, 0xED5);
 
     syscalls[SYSCALL_GET_THREAD_ID]    = sys_get_thread_id;
     syscalls[SYSCALL_SET_FS_BASE]      = sys_setfsbase;

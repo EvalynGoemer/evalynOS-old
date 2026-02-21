@@ -30,7 +30,7 @@ void x2apic_tsc_deadline_isr() {
     wrmsr(TSC_DEADLINE, read_tsc() + (tsc_frequency / 1000));
     wrmsr(x2APIC_EOI, 0);
 
-    if (shouldSchedule && ((x2apic_timer_ms % 10) == 0)) {
+    if (shouldSchedule /*&& ((x2apic_timer_ms % 10) == 0)*/) {
         schedule();
     }
 }
@@ -40,7 +40,7 @@ void x2apic_periodic_isr() {
 
     wrmsr(x2APIC_EOI, 0);
 
-    if (shouldSchedule && ((x2apic_timer_ms % 10) == 0)) {
+    if (shouldSchedule /*&& ((x2apic_timer_ms % 10) == 0)*/) {
         schedule();
     }
 }

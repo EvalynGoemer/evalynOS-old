@@ -32,14 +32,44 @@ void sys_open(struct syscall_frame* frame) {
         return;
     }
 
-    struct fd* file = malloc(sizeof(struct fd));
+    int fd = get_current_thread()->next_fd;
+
+    if (fd >= 256) {
+        free(fileName);
+        frame->rax = -1;
+        return;
+    }
+
+    struct fd* file = &get_current_thread()->fds[fd];
+
     file->file_data = malloc(size);
-    fs_read(fileName, file->file_data, size);
+    if (!file->file_data) {
+        free(fileName);
+        frame->rax = -1;
+        return;
+    }
+
+    if (fs_read(fileName, file->file_data, size) < 0) {
+        free(file->file_data);
+        free(fileName);
+        frame->rax = -1;
+        return;
+    }
+
     file->seek_pos = 0;
-    file->file_name = malloc(strlen(fileName));
+
+    file->file_name = malloc(strlen(fileName) + 1);
+    if (!file->file_name) {
+        free(file->file_data);
+        free(fileName);
+        frame->rax = -1;
+        return;
+    }
+
     strcpy(file->file_name, fileName);
-    get_current_thread()->fds[get_current_thread()->next_fd] = *file;
-    frame->rax = get_current_thread()->next_fd++;
+
+    frame->rax = fd;
+    get_current_thread()->next_fd++;
 
     free(fileName);
 }

@@ -19,7 +19,7 @@
 #include <utils/spinlock.h>
 
 pagemap_t kernel_pagemap = {0};
-spinlock_t vmm_spinlock = {ATOMIC_FLAG_INIT};
+spinlock_t vmm_spinlock = {0};
 
 void vmm_switch_to(pagemap_t *pagemap) {
     uintptr_t cr3 = (uintptr_t)pagemap->top_level - hhdm_request.response->offset;

@@ -13,7 +13,7 @@
 // TODO
 // - Turn into buddy allocator
 
-spinlock_t pmm_spinlock = {ATOMIC_FLAG_INIT};
+spinlock_t pmm_spinlock = {0};
 
 #define PAGE_SIZE 4096
 #define ALIGN_UP(x, align) ((((uintptr_t) (x)) + ((align) - 1)) & ~((uintptr_t) ((align) - 1)))

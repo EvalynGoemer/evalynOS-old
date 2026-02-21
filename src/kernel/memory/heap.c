@@ -79,7 +79,7 @@ static void *heap_start = NULL;
 static size_t heap_size = 0;
 static heap_free_block_t *free_list_head = NULL;
 
-spinlock_t heap_spinlock = {ATOMIC_FLAG_INIT};
+spinlock_t heap_spinlock = {0};
 
 int heap_expand_pages(size_t pages) {
     if (pages == 0) return 0;

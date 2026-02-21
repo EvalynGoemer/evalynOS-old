@@ -220,12 +220,12 @@ void execute_commands(const char *cmd) {
         return;
     }
     if (strcmp("FIREWORKS", to_upper(cmd)) == 0) {
-        printf("Started fireworks test with HELLO.elf {16k Iterations; 1 to 5ms delay}\n");
-        for (int i = 0; i < 16 * 1024; i++) {
+        printf("Started fireworks test with HELLO.elf {64k Iterations; 1ms delay}\n");
+        for (int i = 0; i < 64 * 1024; i++) {
             if (i % 100 == 0)
                 printf("FIREWORKS: Spawning #%d\n", i);
             uint64_t tsc = __rdtsc();
-            int sleep_time = (tsc % 5) + 1;
+            int sleep_time = (tsc % 1) + 1;
             pagemap_t* pagemap = new_pagemap();
             create_thread(helloWorld_kthread, pagemap);
             timer_blocking_sleep_ms(sleep_time);

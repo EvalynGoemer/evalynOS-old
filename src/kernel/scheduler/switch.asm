@@ -1,10 +1,14 @@
 global thread_switch
 global thread_switch_user
 global switch_to_user
+extern spinlock_unlock_nil
+
+section .rodata
+x87fpu dw 0x0C3F
+ssefpu dd 0x1F80
 
 section .text
 thread_switch:
-    pushfq
     push rbx
     push rbp
     push r12
@@ -12,8 +16,9 @@ thread_switch:
     push r14
     push r15
 
-    mov [rdi], rsp
-    mov rsp, rsi
+    mov [rdx], rsp
+    mov rsp, rcx
+    call spinlock_unlock_nil
 
     pop r15
     pop r14
@@ -21,23 +26,18 @@ thread_switch:
     pop r12
     pop rbp
     pop rbx
-    popfq
-
     ret
 
 USER_STACK_TOP equ 0x0000000080000000
 
 switch_to_user:
+    cli
     swapgs
-    mov ax, 0x20 | 3
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
+    fninit
+    fldcw [x87fpu]
+    ldmxcsr [ssefpu]
 
-    push 0x20 | 3
-    push rsi
-    push 0x200
-    push 0x28 | 3
-    push rdi
-    iretq
+    mov r11, 0x202
+    mov rcx, rdi
+    mov rsp, rsi
+    o64 sysret

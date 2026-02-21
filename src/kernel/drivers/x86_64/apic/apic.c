@@ -45,7 +45,7 @@ void xapic_tsc_deadline_isr() {
     wrmsr(TSC_DEADLINE, read_tsc() + (tsc_frequency / 1000));
     mmio_write_offset_32(apic_address, APIC_REGISTER_EOI, 0);
 
-    if (shouldSchedule && ((xapic_timer_ms % 10) == 0)) {
+    if (shouldSchedule /*&& ((xapic_timer_ms % 10) == 0)*/) {
         schedule();
     }
 }
@@ -55,7 +55,7 @@ void xapic_periodic_isr() {
 
     mmio_write_offset_32(apic_address, APIC_REGISTER_EOI, 0);
 
-    if (shouldSchedule && ((xapic_timer_ms % 10) == 0)) {
+    if (shouldSchedule /*&& ((xapic_timer_ms % 10) == 0)*/) {
         schedule();
     }
 }

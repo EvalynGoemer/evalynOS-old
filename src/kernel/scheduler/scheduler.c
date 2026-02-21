@@ -26,9 +26,9 @@ void task_quit() {
     }
 }
 
-spinlock_t scheduler_spinlock = {ATOMIC_FLAG_INIT};
+spinlock_t scheduler_spinlock = {0};
 struct thread* threads = NULL;
-int next_thread_id = 0;
+_Atomic int next_thread_id = 0;
 
 void create_thread(void (*entry_point)(void*), pagemap_t *pagemap) {
     bool lock1r = spinlock_lock(&scheduler_spinlock);
@@ -69,7 +69,6 @@ void create_thread(void (*entry_point)(void*), pagemap_t *pagemap) {
     }
     *--stack = (uint64_t)task_quit;
     *--stack = (uint64_t)entry_point;
-    *--stack = 0x202;
 
     *--stack = 0;
     *--stack = 0;
@@ -143,10 +142,14 @@ void schedule() {
 
     wrmsr(UGSBAS, (uint64_t)current_thread);
 
-    spinlock_unlock(&scheduler_spinlock, lock1r);
-    thread_switch(&previous_thread->krsp, current_thread->krsp);
+    uint64_t* old_rsp = &previous_thread->krsp;
+    uint64_t  new_rsp = current_thread->krsp;
+    thread_switch(&scheduler_spinlock, lock1r, old_rsp, new_rsp);
 }
 
 struct thread *get_current_thread() {
-    return threads;
+    bool lock1r = spinlock_lock(&scheduler_spinlock);
+    struct thread* tmp = threads;
+    spinlock_unlock(&scheduler_spinlock, lock1r);
+    return tmp;
 }
