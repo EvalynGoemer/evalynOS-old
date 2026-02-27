@@ -1,3 +1,4 @@
+#include "memory/vma.h"
 #include "memory/vmm.h"
 #include "utils/globals.h"
 #include "utils/mmio.h"
@@ -10,6 +11,7 @@
 #include <drivers/x86_64/timers/tsc.h>
 #include <scheduler/scheduler.h>
 #include <drivers/timer.h>
+#include <utils/macros.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -78,9 +80,11 @@ uint16_t setup_apic() {
         wrmsr(APIC_BASE, apic_base);
     }
 
-    uint64_t apic_phys_address = rdmsr(APIC_BASE) & ~0xFFF;
-    apic_address = apic_phys_address + hhdm_request.response->offset;
+    uint64_t apic_phys_address = ALIGN_DOWN(rdmsr(APIC_BASE), PAGE_SIZE);
+    apic_address = valloc(PAGE_SIZE * 2);
     vmm_map_page(&kernel_pagemap, apic_address, apic_phys_address,
+                 PTE_PRESENT | PTE_WRITABLE | PTE_NX | PTE_PCD | PTE_PWT);
+    vmm_map_page(&kernel_pagemap, apic_address + PAGE_SIZE, apic_phys_address,
                  PTE_PRESENT | PTE_WRITABLE | PTE_NX | PTE_PCD | PTE_PWT);
 
     uint64_t apic_svr = mmio_read_offset_32(apic_address, APIC_REGISTER_SVR);
