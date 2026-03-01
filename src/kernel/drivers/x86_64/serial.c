@@ -13,7 +13,6 @@ uint16_t serial_port = 0x3F8;
 bool serial_enabled = false;
 bool serial_works = false;
 
-
 volatile uint8_t serial_buffer_index;
 volatile char serial_buffer[256] = {'\0'};
 
@@ -31,34 +30,76 @@ int serialDeviceWrite(__attribute__((unused)) char* path, __attribute__((unused)
     return write_length;
 }
 
+void serial_set_divisor(uint16_t port, uint16_t divsor) {
+    uint8_t lcr = inbd(port + 3);          // save lcr state
+    outbd(port + 3, lcr | 0x80);           // enable dlab
+    outbd(port + 0, divsor & 0xff);        // set lo-byte
+    outbd(port + 1, (divsor >> 8) & 0xff); // set hi-byte
+    outbd(port + 3, lcr);                  // restore lcr state
+}
+
+void serial_set_interrupts(uint16_t port, uint8_t setting) {
+    uint8_t lcr = inbd(port + 3);          // save lcr state
+    outbd(port + 3, lcr & ~0x80);          // disable dlab
+    outbd(port + 1, setting);              // disable interrupts
+    outbd(port + 3, lcr);                  // restore lcr state
+}
+
+void serial_set_dlab(uint16_t port, bool setting) {
+    uint8_t lcr = inbd(port + 3);          // get lcr state
+    if (setting)
+        outbd(port + 3, lcr | 0x80);       // set dlab
+    else
+        outbd(port + 3, lcr & ~0x80);      // disable dlab
+}
+
+void serial_set_mcr(uint16_t port, uint8_t setting) {
+    outbd(port + 4, setting);              // set mcr state
+}
+
+void serial_set_mode(uint16_t port, uint8_t settingA, uint8_t settingB) {
+    uint8_t dlab = inbd(port + 3) & 0x80;  // get dlab state
+    outbd(port + 3, settingA | dlab);      // set settingA
+    outbd(port + 2, settingB);             // set settingB
+}
+
+bool serial_test(uint16_t port) {
+    uint8_t lcr = inbd(port + 3);          // save lcr state
+    uint8_t mcr = inbd(port + 4);          // save mcr state
+    outbd(port + 3, lcr & ~0x80);          // disable dlab
+    outbd(port + 4, 0x1E);                 // enable loopback for testing
+    for (int i = 0; i < 5; i++) {
+        outbd(port + 0, 0x69);             // send test byte
+        if (inbd(port + 0) == 0x69) {
+            outbd(port + 4, mcr);          // restore mcr state
+            outbd(port + 3, lcr);          // restore lcr state
+            return true;
+        }
+    }
+    return false;
+}
+
 void setup_serial() {
     if (!serial_enabled) {
         return;
     }
 
-    outb(serial_port + 3, 0x00); // disable DLAB to set interrupt register
-    outb(serial_port + 1, 0x01); // enable interrupts
-    outb(serial_port + 3, 0x80); // enable DLAB to change baud rate
-    outb(serial_port + 0, 0x01); // set divsor to 1 for 115200 baud
-    outb(serial_port + 1, 0x00); // high byte of previous
-    outb(serial_port + 3, 0x03); // set 8N1 mode
-    outb(serial_port + 2, 0x07); // set FIFO with 1 byte threshold
-    outb(serial_port + 4, 0x0B); // enable the irqs
+    serial_set_interrupts(serial_port, 0);
+    serial_set_divisor(serial_port, 1);       // 115200 baud
+    serial_set_mode(serial_port, 0x03, 0x07); // 8N1
 
-    outb(serial_port + 4, 0x1E); // enable loopback for testing
-    outb(serial_port + 0, 0x69); // send test byte
-    if(inb(serial_port + 0) != 0x69) {
+    if(!serial_test(serial_port)) {
         printf("SERIAL: Failed to init; Do you lack a serial port at I/O port 0x%x?\n", serial_port);
         serial_works = false;
         return;
     }
-    outb(serial_port + 4, 0x0F); // disable loopback
-
-    printf("SERIAL: Setup serial on I/O port 0x%x\n", serial_port);
+    serial_set_mcr(serial_port, 0x0B);
+    serial_set_dlab(serial_port, false);
+    serial_set_interrupts(serial_port, 1);
 
     serial_works = true;
-
     unmask_irq(4);
+    printf("SERIAL: Setup serial on I/O port 0x%x\n", serial_port);
 
     struct file* file = malloc(sizeof(struct file));
     strcpy(file->path, "/dev/term/stty");
@@ -73,7 +114,6 @@ int serial_received() {
 
 char read_serial() {
     while (serial_received() == 0);
-
     return inb(serial_port);
 }
 
@@ -90,9 +130,8 @@ int write_serial(char *string, int write_length) {
         char c = string[i];
 
         // qemu serial terminal and maybe others expect CRLF and not LF while kernel uses LF so convert
-        if (c == '\n') {
+        if (c == '\n')
             outb(serial_port, '\r');
-        }
 
         outb(serial_port, c);
         i++;

@@ -166,8 +166,7 @@ run:
 		-cdrom ./evalynOS.iso \
 		-boot d -no-reboot -no-shutdown \
 		-audiodev pa,id=speaker -machine pcspk-audiodev=speaker \
-		-chardev stdio,id=debugcon \
-		-device isa-debugcon,chardev=debugcon
+		-serial stdio
 
 .PHONY: tcg
 tcg:

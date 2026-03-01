@@ -11,10 +11,6 @@
 uint16_t acpi_timer_address_type = 0;
 uint64_t acpi_timer_address = 0;
 
-static inline void io_wait() {
-    outb(0x80, 0);
-}
-
 void acpi_timer_mmio_blocking_sleep_ms(uint64_t ms) {
     if (acpi_timer_address == 0) {
         return;
@@ -75,9 +71,9 @@ bool setup_acpi_timer() {
         }
         printf("ACPI Timer: Timer read zero; Retrying\n");
         io_wait(); io_wait(); io_wait(); io_wait();
-        currentTimerSource = TIMER_SOURCE_ACPI;
-        timer_blocking_sleep_ms = acpi_timer_port_io_blocking_sleep_ms;
         if (inl(acpi_timer_address) != 0) {
+            currentTimerSource = TIMER_SOURCE_ACPI;
+            timer_blocking_sleep_ms = acpi_timer_port_io_blocking_sleep_ms;
             return true;
         }
         printf("ACPI Timer: Failed to read\n");

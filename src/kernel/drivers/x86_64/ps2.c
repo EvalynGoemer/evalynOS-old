@@ -21,10 +21,6 @@ volatile uint8_t ps2Kbd_buffer_head = 0;
 volatile uint8_t ps2Kbd_buffer_tail = 0;
 volatile char ps2Kbd_buffer[256] = {'\0'};
 
-static inline void io_wait() {
-    outb(0x80, 0);
-}
-
 int ps2KbdDeviceRead(__attribute__((unused)) char* path, char* return_data, int read_length) {
     int bytes_read = 0;
     bool lock1r = spinlock_lock(&ps2Kbd_buffer_lock);
@@ -47,31 +43,19 @@ int ps2KbdDeviceWrite(__attribute__((unused)) char* path, __attribute__((unused)
 // Copyright (c) 2025 NerdNextDoor All rights reserved.
 // NCSA/University of Illinois Open Source License: https://codeberg.org/NerdNextDoor/arikoto/src/branch/master/LICENSE.md
 void setup_ps2() {
-    outb(PS2_COMMAND_PORT, 0xAD);
-    io_wait();
-    outb(PS2_COMMAND_PORT, 0xA7);
-    io_wait();
-
-    inb(PS2_DATA_PORT);
-    io_wait();
-
-    outb(PS2_COMMAND_PORT, 0x20);
-    io_wait();
+    outbd(PS2_COMMAND_PORT, 0xAD);
+    outbd(PS2_COMMAND_PORT, 0xA7);
+    inbd(PS2_DATA_PORT);
+    outbd(PS2_COMMAND_PORT, 0x20);
 
     uint8_t status = inb(PS2_DATA_PORT);
-    io_wait();
     status |= (1 << 0) | (1 << 1) | (1 << 6);
 
-    outb(PS2_COMMAND_PORT, 0x60);
-    io_wait();
-    outb(PS2_DATA_PORT, status);
-    io_wait();
+    outbd(PS2_COMMAND_PORT, 0x60);
+    outbd(PS2_DATA_PORT, status);
 
-    outb(PS2_COMMAND_PORT, 0xAE);
-    io_wait();
-
-    outb(PS2_DATA_PORT, 0xFF);
-    io_wait();
+    outbd(PS2_COMMAND_PORT, 0xAE);
+    outbd(PS2_DATA_PORT, 0xFF);
 
     int timeout = 50;
     uint8_t response;
@@ -83,28 +67,12 @@ void setup_ps2() {
         timer_blocking_sleep_ms(1);
     }
 
-    outb(PS2_DATA_PORT, 0xF0);
-    io_wait();
-    outb(PS2_DATA_PORT, 0x02);
-    io_wait();
-
-    outb(0x64,0xD4);
-    io_wait();
-
-    outb(0x60,0xF6);
-    io_wait();
-
-    outb(0x64,0xD4);
-    io_wait();
-
-    outb(0x60,0xF4);
-    io_wait();
-
-    // outb(PS2_COMMAND_PORT, 0xF6);
-    // io_wait();
-
-    // outb(PS2_COMMAND_PORT, 0xF4);
-    // io_wait();
+    outbd(PS2_DATA_PORT, 0xF0);
+    outbd(PS2_DATA_PORT, 0x02);
+    outbd(0x64,0xD4);
+    outbd(0x60,0xF6);
+    outbd(0x64,0xD4);
+    outbd(0x60,0xF4);
 
     timeout = 50;
     while (timeout--) {

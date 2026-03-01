@@ -23,10 +23,6 @@
 
 #define CASCADE_IRQ 2
 
-static inline void io_wait() {
-    outb(0x80, 0);
-}
-
 void pic_send_eoi(uint8_t irq) {
     if(irq >= 8) {
         outb(PIC2_COMMAND, 0x20);
@@ -52,26 +48,16 @@ void pic_unmask_irq(uint8_t IRQline) {
 void setup_pic(int offset1, int offset2) {
     __asm__ __volatile__("cli");
 
-    outb(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4);
-    io_wait(); io_wait();
-    outb(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
-    io_wait(); io_wait();
-    outb(PIC1_DATA, offset1);
-    io_wait(); io_wait();
-    outb(PIC2_DATA, offset2);
-    io_wait(); io_wait();
-    outb(PIC1_DATA, 1 << CASCADE_IRQ);
-    io_wait(); io_wait();
-    outb(PIC2_DATA, 2);
-    io_wait(); io_wait();
-
-    outb(PIC1_DATA, ICW4_8086);
-    io_wait(); io_wait();
-    outb(PIC2_DATA, ICW4_8086);
-    io_wait(); io_wait();
-
-    outb(PIC1_DATA, 0xFF);
-    outb(PIC2_DATA, 0xFF);
+    outbd(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4);
+    outbd(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
+    outbd(PIC1_DATA, offset1);
+    outbd(PIC2_DATA, offset2);
+    outbd(PIC1_DATA, 1 << CASCADE_IRQ);
+    outbd(PIC2_DATA, 2);
+    outbd(PIC1_DATA, ICW4_8086);
+    outbd(PIC2_DATA, ICW4_8086);
+    outbd(PIC1_DATA, 0xFF);
+    outbd(PIC2_DATA, 0xFF);
 
     unmask_irq = pic_unmask_irq;
 

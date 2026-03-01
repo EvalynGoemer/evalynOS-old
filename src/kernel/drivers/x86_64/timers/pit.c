@@ -11,20 +11,13 @@
 #define PIT_CHANNEL0_PORT 0x40
 #define PIT_FREQUENCY 1193182
 
-static inline void io_wait() {
-    outb(0x80, 0);
-}
-
 int pitFrequency;
 
 uint16_t read_pit_count() {
     uint16_t count = 0;
     outb(0x43, 0b0000000);
-    io_wait();
     count  = inb(0x40);
-    io_wait();
     count |= inb(0x40) << 8;
-    io_wait();
     return count;
 }
 
@@ -34,11 +27,9 @@ void pit_sleep_ms(uint64_t ms) {
 
     if (divisor < 100) divisor = 100;
 
-    outb(PIT_CONTROL_PORT, 0x34);
-    io_wait();
-    outb(PIT_CHANNEL0_PORT, divisor & 0xFF);
-    io_wait();
-    outb(PIT_CHANNEL0_PORT, (divisor >> 8) & 0xFF);
+    outbd(PIT_CONTROL_PORT, 0x34);
+    outbd(PIT_CHANNEL0_PORT, divisor & 0xFF);
+    outbd(PIT_CHANNEL0_PORT, (divisor >> 8) & 0xFF);
 
     uint32_t elapsed_ticks = 0;
     uint16_t current_count = 0;
