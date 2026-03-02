@@ -16,7 +16,7 @@ int ttyDeviceWrite(__attribute__((unused)) char* path, char* write_data, int wri
     flanterm_write(ft_ctx, write_data, write_length);
 
     if(serial_works) {
-        write_serial(write_data, write_length);
+        serial_send_string(write_data, write_length);
     }
 
     return write_length;

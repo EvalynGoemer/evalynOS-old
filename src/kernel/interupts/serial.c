@@ -5,8 +5,8 @@
 #include <drivers/keyboard.h>
 
 void serial_isr() {
-    while (inb(serial_port + 5) & 1) {
-        char c = inb(serial_port);
+    while (serial_data_ready()) {
+        char c = serial_read();
         if (c != '\0') {
             serial_buffer[serial_buffer_index] = c;
             serial_buffer_index++;

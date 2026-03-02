@@ -19,19 +19,15 @@ static inline void io_wait() {
 }
 
 static inline void outbd(unsigned short port, unsigned char val) {
-    io_wait(); io_wait();
-    __asm__ volatile ( "outb %b0, %w1" : : "a"(val), "Nd"(port) : "memory");
-    io_wait(); io_wait();
+    io_wait();
+    outb(port, val);
+    io_wait();
 }
 
 static inline unsigned char inbd(unsigned short port) {
-    io_wait(); io_wait();
-    unsigned char ret;
-    __asm__ volatile ( "inb %w1, %b0"
-    : "=a"(ret)
-    : "Nd"(port)
-    : "memory");
-    io_wait(); io_wait();
+    io_wait();
+    unsigned char ret = inb(port);
+    io_wait();
     return ret;
 }
 

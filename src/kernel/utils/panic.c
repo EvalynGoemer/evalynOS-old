@@ -355,7 +355,7 @@ void panic_interrupt_frame(char* message, struct interrupt_frame* frame) {
     printf("                      @           @                           @@           @                        \n");
     printf("                       @@@@@@@@@@@                             @@@@@@@@@@@@                         \n");
 
-    printf("god damn it; \033[38;2;255;0;0mhalting;\033[?25l");
+    printf("god damn it; \033[38;2;255;0;0mhalting;\033[0m\033[?25l");
 
     #ifndef MUTE_KERNEL_PANIC
     play_sound(1000);

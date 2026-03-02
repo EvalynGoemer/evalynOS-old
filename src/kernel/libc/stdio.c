@@ -35,7 +35,9 @@ void internal_putc(int c, void *_) {
     }
 
     if(serial_works) {
-        write_serial(&ch, 1);
+        if (ch == '\n')
+            serial_send('\r');
+        serial_send(ch);
     }
 }
 
