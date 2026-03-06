@@ -31,7 +31,7 @@ struct thread* threads = NULL;
 _Atomic int next_thread_id = 0;
 
 void create_thread(void (*entry_point)(void*), pagemap_t *pagemap) {
-    bool lock1r = spinlock_lock(&scheduler_spinlock);
+    int lock1r = spinlock_lock(&scheduler_spinlock);
     bool had_threads = (threads != NULL);
 
     struct thread* new_thread = malloc(sizeof(struct thread));
@@ -90,7 +90,7 @@ void create_thread(void (*entry_point)(void*), pagemap_t *pagemap) {
 }
 
 void schedule() {
-    bool lock1r = spinlock_lock(&scheduler_spinlock);
+    int lock1r = spinlock_lock(&scheduler_spinlock);
     struct thread *previous_thread = threads;
     threads = threads->next_thread;
     struct thread *current_thread = threads;
@@ -101,7 +101,7 @@ void schedule() {
     }
 
     while (current_thread->thread_state == THREAD_STATE_REAPING) {
-        bool lock2r = spinlock_lock(&reaper_spinlock);
+        int lock2r = spinlock_lock(&reaper_spinlock);
         struct thread *to_reap = current_thread;
         previous_thread->next_thread = current_thread->next_thread;
         threads = current_thread->next_thread;
@@ -148,7 +148,7 @@ void schedule() {
 }
 
 struct thread *get_current_thread() {
-    bool lock1r = spinlock_lock(&scheduler_spinlock);
+    int lock1r = spinlock_lock(&scheduler_spinlock);
     struct thread* tmp = threads;
     spinlock_unlock(&scheduler_spinlock, lock1r);
     return tmp;

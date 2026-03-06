@@ -5,16 +5,17 @@
 #define INTERRUPT_HANDLER_GENERAL_PROTECTION_FAULT 0x0D
 #define INTERRUPT_HANDLER_PAGE_FAULT 0x0E
 
-#define INTERRUPT_HANDLER_PIT 0x20
 #define INTERRUPT_HANDLER_PS2 0x21
 #define INTERRUPT_HANDLER_PS2_MOUSE (0x20 + 12)
 #define INTERRUPT_HANDLER_SERIAL 0x24
 
-#define INTERRUPT_HANDLER_APIC_TIMER 0x30
+#define INTERRUPT_HANDLER_APIC_TIMER 0x20
 
 #define INTERRUPT_HANDLER_SPURIOUS_PIC_1 0x27
 #define INTERRUPT_HANDLER_SPURIOUS_PIC_2 0x2F
 #define INTERRUPT_HANDLER_SPURIOUS_APIC  0xFF
+
+#define INTERRUPT_HANDLER_HIGH_PRIORITY_SERIAL 0xF0
 
 #define INTERRUPT_HANDLER_SYSCALL 0x69
 
@@ -25,10 +26,10 @@ extern void isr0x0E();
 extern void isr0x20();
 extern void isr0x21();
 extern void isr0x24();
-extern void isr0x30();
 
 extern void isr0x27();
 extern void isr0x2F();
+extern void isr0xF0();
 extern void isr0xFF();
 
 // Reserved Exception (Used as placeholder for generic)

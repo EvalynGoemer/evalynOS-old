@@ -162,7 +162,7 @@ void *allocate_page() {
         panic("PMM: Out of memory");
     }
 
-    bool lock1r = spinlock_lock(&pmm_spinlock);
+    int lock1r = spinlock_lock(&pmm_spinlock);
 
     used_pages++;
 
@@ -205,7 +205,7 @@ void free_page(void *page) {
     if (!info->used)
         panic("PMM: Double free");
 
-    bool lock1r = spinlock_lock(&pmm_spinlock);
+    int lock1r = spinlock_lock(&pmm_spinlock);
 
     if (info->ref_count > 1) {
         info->ref_count--;

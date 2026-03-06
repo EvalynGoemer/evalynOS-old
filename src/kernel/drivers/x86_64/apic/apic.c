@@ -1,6 +1,5 @@
 #include "memory/vma.h"
 #include "memory/vmm.h"
-#include "utils/globals.h"
 #include "utils/mmio.h"
 #include <drivers/x86_64/apic/apic.h>
 #include <drivers/x86_64/apic/x2apic.h>
@@ -96,7 +95,7 @@ uint16_t setup_apic() {
             printf("xAPIC: Setup using TSC Deadline Mode\n");
             apic_timer_isr = xapic_tsc_deadline_isr;
             timer_get_ms = xapic_get_ms;
-            mmio_write_offset_32(apic_address, APIC_REGISTER_TIMER, 0x30 | APIC_MODE_TSC_DEADLINE);
+            mmio_write_offset_32(apic_address, APIC_REGISTER_TIMER, 0x20 | APIC_MODE_TSC_DEADLINE);
             __sync_synchronize();
             wrmsr(TSC_DEADLINE, read_tsc() + (tsc_frequency / 1000));
             return 0;
@@ -113,7 +112,7 @@ uint16_t setup_apic() {
     mmio_write_offset_32(apic_address, APIC_REGISTER_TIMER, APIC_MODE_MASKED);
     uint32_t ticksIn10ms = 0xFFFFFFFF - mmio_read_offset_32(apic_address, APIC_REGISTER_CCOUNT);
     mmio_write_offset_32(apic_address, APIC_REGISTER_DIVIDE, 0x3);
-    mmio_write_offset_32(apic_address, APIC_REGISTER_TIMER, 0x30 | APIC_MODE_PERIODIC);
+    mmio_write_offset_32(apic_address, APIC_REGISTER_TIMER, 0x20 | APIC_MODE_PERIODIC);
     mmio_write_offset_32(apic_address, APIC_REGISTER_ICOUNT, ticksIn10ms / 10);
 
     return 0;

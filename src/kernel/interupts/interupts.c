@@ -3,10 +3,9 @@
 #include <interupts/interupts.h>
 #include <drivers/x86_64/timers/pit.h>
 #include <drivers/x86_64/apic/apic.h>
+#include <drivers/x86_64/irq.h>
 #include <drivers/x86_64/rflags.h>
 #include <drivers/timer.h>
-
-#include <stdio.h>
 
 void dispatch_interupt (struct interrupt_frame *frame) {
     if (frame->cs & 0x3) {
@@ -16,6 +15,11 @@ void dispatch_interupt (struct interrupt_frame *frame) {
         }
     }
 
+    int new_irql = (frame->vector >> 4) & 0xf; int old_irql;
+    if (new_irql >= IRQL_DISPATCH)
+        old_irql = irql_raise(new_irql);
+
+    send_eoi();
     asm volatile ("sti");
 
     switch (frame->vector) {
@@ -28,18 +32,17 @@ void dispatch_interupt (struct interrupt_frame *frame) {
         case INTERRUPT_HANDLER_PAGE_FAULT:
             page_fault_isr(frame);
             break;
-        case INTERRUPT_HANDLER_PIT:
-            // pit_isr();
-            break;
+        case INTERRUPT_HANDLER_APIC_TIMER:
+            apic_timer_isr();
         case INTERRUPT_HANDLER_PS2_MOUSE:
         case INTERRUPT_HANDLER_PS2:
             ps2_isr();
             break;
-        case INTERRUPT_HANDLER_SERIAL:
+        case INTERRUPT_HANDLER_HIGH_PRIORITY_SERIAL:
             serial_isr();
             break;
-        case INTERRUPT_HANDLER_APIC_TIMER:
-            apic_timer_isr();
+        case INTERRUPT_HANDLER_SERIAL:
+            // serial_isr();
             break;
         case INTERRUPT_HANDLER_SPURIOUS_PIC_1:
         case INTERRUPT_HANDLER_SPURIOUS_PIC_2:
@@ -50,6 +53,11 @@ void dispatch_interupt (struct interrupt_frame *frame) {
             generic_isr(frame);
             break;
     }
+
+    asm volatile ("cli");
+
+    if (new_irql >= IRQL_DISPATCH)
+        irql_lower(old_irql);
 
     if (frame->cs & 0x3) {
         if (!fred_enbled) {

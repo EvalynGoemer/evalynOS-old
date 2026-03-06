@@ -21,7 +21,7 @@ void valloc_init() {
         return 0;
     }
 
-    bool lock1r = spinlock_lock(&vma_spinlock);
+    int lock1r = spinlock_lock(&vma_spinlock);
 
     size = ALIGN_UP(size, PAGE_SIZE);
 
@@ -72,7 +72,7 @@ void valloc_init() {
     }
     size = ALIGN_UP(size, PAGE_SIZE);
 
-    bool lock1r = spinlock_lock(&vma_spinlock);
+    int lock1r = spinlock_lock(&vma_spinlock);
 
     bool allocated_region = false;
     vmm_page_range_t usearch = {.vaddr = fixed_addr, .size = 0};
@@ -160,7 +160,7 @@ void valloc_init() {
     }
     size = ALIGN_UP(size, PAGE_SIZE);
 
-    bool lock1r = spinlock_lock(&vma_spinlock);
+    int lock1r = spinlock_lock(&vma_spinlock);
 
     vmm_page_range_t usearch = {.vaddr = vaddr, .size = 0};
     vmm_page_range_t* uresult = RB_FIND(vmm_valloc_tree, &pagemap->used_ranges, &usearch);

@@ -6,7 +6,7 @@ spinlock_t reaper_spinlock = {0};
 struct thread* threads_to_reap = NULL;
 
 struct thread* get_next_thread_to_reap() {
-    bool lock1r = spinlock_lock(&reaper_spinlock);
+    int lock1r = spinlock_lock(&reaper_spinlock);
     if (threads_to_reap == NULL) {
         spinlock_unlock(&reaper_spinlock, lock1r);
         return NULL;

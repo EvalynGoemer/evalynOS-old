@@ -28,7 +28,9 @@
 void internal_putc(int c, void *_) {
     char ch = (char)c;
 
+    int lock1r = spinlock_lock(&stdio_spinlock);
     flanterm_write(ft_ctx, &ch, 1);
+    spinlock_unlock(&stdio_spinlock, lock1r);
 
     if (cpu_feature_bit(1, 0, 'c', CPUID_HYPERVISOR)) {
         outb(0xE9, ch);
@@ -42,12 +44,10 @@ void internal_putc(int c, void *_) {
 }
 
 int printf(const char* fmt, ...) {
-    bool lock1r = spinlock_lock(&stdio_spinlock);
     va_list args;
     va_start(args, fmt);
     int ret = npf_vpprintf(internal_putc, NULL, fmt, args);
     va_end(args);
-    spinlock_unlock(&stdio_spinlock, lock1r);
     return ret;
 }
 

@@ -39,6 +39,8 @@ void ioapic_set_entry(ioapic_t* ioapic, uint8_t index, uint64_t data) {
 }
 
 void ioapic_map_irq(ioapic_t* ioapic, uint8_t irq, uint8_t vector, uint8_t destination) {
+    if (irq == 4)
+        vector = 0xF0;
     uint64_t redirect = vector;
     redirect |= ((uint64_t) destination << IOAPIC_DEST_SHIFT);
     ioapic_set_entry(ioapic, irq, redirect);

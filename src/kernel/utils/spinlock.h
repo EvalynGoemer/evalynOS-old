@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <drivers/x86_64/irq.h>
 #include <drivers/x86_64/rflags.h>
 
 typedef struct {
@@ -13,9 +14,8 @@ static inline void spinlock_init(spinlock_t* spinlock) {
 }
 
 [[nodiscard]]
-static inline bool spinlock_lock(spinlock_t* spinlock) {
-    bool irqs = interrupts_enabled();
-    asm volatile("cli" ::: "memory");
+static inline int spinlock_lock(spinlock_t* spinlock) {
+    int irqs = irql_raise(IRQL_DISPATCH);
     while (true) {
         while (__atomic_load_n(&spinlock->flag, __ATOMIC_RELAXED))
             asm volatile("pause");
@@ -25,10 +25,7 @@ static inline bool spinlock_lock(spinlock_t* spinlock) {
     return irqs;
 }
 
-static inline void spinlock_unlock(spinlock_t* spinlock, bool irqs) {
+static inline void spinlock_unlock(spinlock_t* spinlock, int irqs) {
     __atomic_store_n(&spinlock->flag, 0, __ATOMIC_RELEASE);
-    if (irqs)
-        asm volatile("sti" ::: "memory");
-    else
-        asm volatile("cli" ::: "memory");
+    irql_lower(irqs);
 }

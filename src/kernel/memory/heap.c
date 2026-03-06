@@ -97,7 +97,7 @@ int heap_expand_pages(size_t pages) {
         vmm_map_page(&kernel_pagemap, virt, (uintptr_t)phys, PTE_PRESENT | PTE_WRITABLE | PTE_NX);
     }
 
-    bool lock1r = spinlock_lock(&heap_spinlock);
+    int lock1r = spinlock_lock(&heap_spinlock);
     heap_free_block_t *new_block = (heap_free_block_t *)base;
     new_block->size = new_region_size;
     new_block->next = NULL;
@@ -163,7 +163,7 @@ void heap_dump(void) {
 void *kmalloc(size_t size) {
     if (size == 0) return NULL;
 
-    bool lock1r = spinlock_lock(&heap_spinlock);
+    int lock1r = spinlock_lock(&heap_spinlock);
 
     size_t payload = ALIGN_UP_HEAP(size);
     size_t header_sz = ALIGN_UP_HEAP(sizeof(size_t));
@@ -223,7 +223,7 @@ void *kmalloc(size_t size) {
 }
 
 void kfree(void *ptr) {
-    bool lock1r = spinlock_lock(&heap_spinlock);
+    int lock1r = spinlock_lock(&heap_spinlock);
     if (!is_kernel_range(ptr, 4096)) {
         printf("kHEAP: Attempted to free user memory @ 0x%llx", (uint64_t)ptr);
         panic("kHEAP: Attempted to free user memory");

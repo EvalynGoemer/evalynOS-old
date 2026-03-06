@@ -77,7 +77,7 @@ void setup_x2apic() {
             printf("x2APIC: Setup using TSC Deadline Mode\n");
             apic_timer_isr = x2apic_tsc_deadline_isr;
             timer_get_ms = x2apic_get_ms;
-            wrmsr(x2APIC_TIMER, 0x30 | APIC_MODE_TSC_DEADLINE);
+            wrmsr(x2APIC_TIMER, 0x20 | APIC_MODE_TSC_DEADLINE);
             __sync_synchronize();
             wrmsr(TSC_DEADLINE, read_tsc() + (tsc_frequency / 1000));
             return;
@@ -91,7 +91,7 @@ void setup_x2apic() {
     wrmsr(x2APIC_TIMER, APIC_MODE_MASKED);
     uint32_t ticksIn10ms = 0xFFFFFFFF - rdmsr(x2APIC_TIMER_CCOUNT);
     wrmsr(x2APIC_TIMER_DIVIDE, 0x3);
-    wrmsr(x2APIC_TIMER, 0x30 | APIC_MODE_PERIODIC);
+    wrmsr(x2APIC_TIMER, 0x20 | APIC_MODE_PERIODIC);
     wrmsr(x2APIC_TIMER_ICOUNT, ticksIn10ms / 10);
 
     timer_get_ms = x2apic_get_ms;

@@ -23,7 +23,7 @@ volatile char ps2Kbd_buffer[256] = {'\0'};
 
 int ps2KbdDeviceRead(__attribute__((unused)) char* path, char* return_data, int read_length) {
     int bytes_read = 0;
-    bool lock1r = spinlock_lock(&ps2Kbd_buffer_lock);
+    int lock1r = spinlock_lock(&ps2Kbd_buffer_lock);
     for (int i = 0; i < read_length; i++) {
         if (ps2Kbd_buffer_head == ps2Kbd_buffer_tail)
             break;

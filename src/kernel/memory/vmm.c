@@ -30,7 +30,7 @@ void vmm_switch_to(pagemap_t *pagemap) {
 }
 
 [[clang::overloadable]] void vmm_map_page(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr, uint64_t flags, uint64_t page_size) {
-    bool lock1r = spinlock_lock(&vmm_spinlock);
+    int lock1r = spinlock_lock(&vmm_spinlock);
     uint16_t pml1i = (virt_addr >> 12) & 0x1ff;
     uint16_t pml2i = (virt_addr >> 21) & 0x1ff;
     uint16_t pml3i = (virt_addr >> 30) & 0x1ff;
@@ -154,7 +154,7 @@ void setup_vmm() {
 }
 
 pagemap_t *new_pagemap() {
-    bool lock1r = spinlock_lock(&vmm_spinlock);
+    int lock1r = spinlock_lock(&vmm_spinlock);
     void *pml4_phys = allocate_page();
     if (pml4_phys == NULL) {
         panic("Failed to allocate new PML4 table page\n");

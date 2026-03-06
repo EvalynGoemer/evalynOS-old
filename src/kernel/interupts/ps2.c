@@ -65,7 +65,7 @@ void ps2_isr() {
             }
 
             raw: {}
-            bool lock1r = spinlock_lock(&ps2Kbd_buffer_lock);
+            int lock1r = spinlock_lock(&ps2Kbd_buffer_lock);
             uint8_t next_head = ps2Kbd_buffer_head + 1;
             if (next_head != ps2Kbd_buffer_tail) {
                 ps2Kbd_buffer[ps2Kbd_buffer_head] = scancode;

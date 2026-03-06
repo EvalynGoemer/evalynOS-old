@@ -35,7 +35,6 @@ dispatch_interupt_asm:
     mov rdi, rsp
 
     cld
-    sti
     call dispatch_interupt
     cli
 
@@ -64,15 +63,16 @@ ISR_ERR 0x0D           ; GPF
 ISR_ERR 0x0E           ; PF
 
 ; Hardware
-ISR     0x20           ; PIT
+ISR     0x20           ; APIC Timer
 ISR     0x21           ; PS/2
 ISR     0x24           ; Serial #1 & #3
-ISR     0x30           ; APIC Timer
 
 ; Spurious Interupts
 ISR     0x27           ; Spurious PIC1
 ISR     0x2F           ; Spurious PIC2
 ISR     0xFF           ; Spurious APIC
+
+ISR     0xF0           ; High Prioirty Serial
 
 ; Others
 ISR     0x16           ; Reserved (Used as placeholder for generic)
