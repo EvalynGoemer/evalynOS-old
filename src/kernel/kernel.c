@@ -32,6 +32,7 @@
 #include <syscalls/syscalls.h>
 #include <utils/safe_user_funcs.h>
 #include <utils/macros.h>
+#include "drivers/dbgstub/dbgstub.h"\
 
 #include <acpi/acpi.h>
 
@@ -108,6 +109,12 @@ void kmain(void) {
 
     setup_tty();
     setup_serial();
+    if (dbgstub_enabled) {
+        serial_works = false;
+        dbgstub_init();
+        DBG_LOG("Awaiting Debugger")
+        asm volatile("int %0" : : "i" (0x3));
+    }
     setup_ps2();
     setup_keyboard();
 

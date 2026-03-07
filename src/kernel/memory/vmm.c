@@ -2,6 +2,7 @@
 #include "elf/elf_structs.h"
 #include "limine.h"
 #include "obsd-tree.h"
+#include "utils/cmdline.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <stddef.h>
@@ -120,6 +121,7 @@ void setup_vmm() {
         if (ph->type != ELF_PROG_PT_LOAD_TYPE) continue;
         uint64_t flags = PTE_PRESENT | PTE_GLOBAL;
         if (ph->flags & ELF_PROG_WRITE) flags |= PTE_WRITABLE;
+        if (dbgstub_enabled)            flags |= PTE_WRITABLE;
         if (!(ph->flags & ELF_PROG_EXEC_FLAG)) flags |= PTE_NX;
 
         vmm_map_pages_continuous(&kernel_pagemap, ph->virt_addr,

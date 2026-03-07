@@ -1,5 +1,6 @@
 #include "drivers/x86_64/ports.h"
 #include "drivers/x86_64/cpuid.h"
+#include "utils/panic.h"
 #include <stdbool.h>
 #include <utils/globals.h>
 #include <drivers/x86_64/serial.h>
@@ -28,9 +29,14 @@
 void internal_putc(int c, void *_) {
     char ch = (char)c;
 
-    int lock1r = spinlock_lock(&stdio_spinlock);
-    flanterm_write(ft_ctx, &ch, 1);
-    spinlock_unlock(&stdio_spinlock, lock1r);
+    if (panic_count == 0) {
+        int lock1r = spinlock_lock(&stdio_spinlock);
+        flanterm_write(ft_ctx, &ch, 1);
+        spinlock_unlock(&stdio_spinlock, lock1r);
+    } else {
+        // durring a panic do not attempt to take a lock
+        flanterm_write(ft_ctx, &ch, 1);
+    }
 
     if (cpu_feature_bit(1, 0, 'c', CPUID_HYPERVISOR)) {
         outb(0xE9, ch);

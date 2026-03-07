@@ -16,6 +16,7 @@
 #define SERIAL_MODEM_CONF  4 // both
 #define SERIAL_LINE_INFO   5 // read
 #define SERIAL_MODEM_INFO  6 // read
+#define SERIAL_SCRATCH_REG 7 // both
 
 /* FIFO Config */
 #define SERIAL_FIFO_THRESH_1b  0x00 // bit 6 & 7 unset

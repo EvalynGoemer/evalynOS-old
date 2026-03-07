@@ -1,4 +1,5 @@
 #include "utils/spinlock.h"
+#include "utils/cmdline.h"
 #include <drivers/x86_64/apic/apic.h>
 #include <drivers/timer.h>
 #include <stddef.h>
@@ -8,6 +9,7 @@
 
 #include <scheduler/scheduler.h>
 #include <scheduler/workers/reaper.h>
+#include <drivers/dbgstub/dbgstub.h>
 #include <drivers/x86_64/fred/fred.h>
 #include <scheduler/switch.h>
 #include <filesystem/filesystem.h>
@@ -90,6 +92,9 @@ void create_thread(void (*entry_point)(void*), pagemap_t *pagemap) {
 }
 
 void schedule() {
+    if (dbgstub_enabled)
+        if (!dbgstub_should_preempt())
+            return;
     int lock1r = spinlock_lock(&scheduler_spinlock);
     struct thread *previous_thread = threads;
     threads = threads->next_thread;

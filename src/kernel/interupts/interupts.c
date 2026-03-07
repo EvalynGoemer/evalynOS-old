@@ -6,6 +6,9 @@
 #include <drivers/x86_64/irq.h>
 #include <drivers/x86_64/rflags.h>
 #include <drivers/timer.h>
+#include <drivers/dbgstub/dbgstub.h>
+#include <utils/cmdline.h>
+#include <string.h>
 
 void dispatch_interupt (struct interrupt_frame *frame) {
     if (frame->cs & 0x3) {
@@ -23,6 +26,13 @@ void dispatch_interupt (struct interrupt_frame *frame) {
     asm volatile ("sti");
 
     switch (frame->vector) {
+        case INTERRUPT_HANDLER_BREAKPOINT_TRAP:
+        case INTERRUPT_HANDLER_DEBUG_TRAP:
+            if (dbgstub_enabled) {
+                struct interrupt_frame *nframe = dbgstub_exception(frame);
+                memmove(frame, nframe, sizeof(struct interrupt_frame));
+            }
+            break;
         case INTERRUPT_HANDLER_DOUBLE_FAULT:
             double_fault_isr(frame);
             break;
@@ -39,10 +49,10 @@ void dispatch_interupt (struct interrupt_frame *frame) {
             ps2_isr();
             break;
         case INTERRUPT_HANDLER_HIGH_PRIORITY_SERIAL:
-            serial_isr();
+            serial_isr(frame);
             break;
         case INTERRUPT_HANDLER_SERIAL:
-            // serial_isr();
+            serial_isr(frame);
             break;
         case INTERRUPT_HANDLER_SPURIOUS_PIC_1:
         case INTERRUPT_HANDLER_SPURIOUS_PIC_2:

@@ -1,3 +1,4 @@
+#include "drivers/timer.h"
 #include <drivers/x86_64/serial.h>
 #include <drivers/x86_64/irq.h>
 #include <drivers/x86_64/ports.h>
@@ -66,11 +67,12 @@ static inline void serial_set_fifo(uint16_t port, uint8_t fifo) {
 bool serial_test(uint16_t port) {
     serial_set_divisor(port, SERIAL_115200_BAUD);
     serial_set_lcr(port, SERIAL_LCR_8BIT | SERIAL_LCR_1STOP | SERIAL_LCR_PARITY_NONE);
-    serial_set_fifo(port, SERIAL_FIFO_ENABLE | SERIAL_FIFO_THRESH_1b | SERIAL_FIFO_TX_FLUSH | SERIAL_FIFO_RX_FLUSH);
+    serial_set_fifo(port, SERIAL_FIFO_TX_FLUSH | SERIAL_FIFO_RX_FLUSH);
     serial_set_mcr(port, SERIAL_MCR_TX_ENABLE | SERIAL_MCR_RX_ENABLE | SERIAL_MCR_LOOP_ENABLE);
     serial_set_dlab(port, false);
     for (int i = 0; i < SERIAL_TEST_RETRIES; i++) {
         outbd(port + SERIAL_TX_BUFF, SERIAL_TEST_MAGIC);
+        timer_blocking_sleep_ms(1);
         if (inbd(port + SERIAL_RX_BUFF) == SERIAL_TEST_MAGIC)
             return true;
     }
@@ -84,6 +86,10 @@ void setup_serial() {
 
     serial_set_interrupts(serial_port, false);
     if(!serial_test(serial_port)) {
+        outbd(serial_port + SERIAL_SCRATCH_REG, SERIAL_TEST_MAGIC);
+        if (inbd(serial_port + SERIAL_SCRATCH_REG) == SERIAL_TEST_MAGIC) {
+            printf("\x1b[93mSERIAL: Serial on I/O port 0x%x exists but failed self test; Continuing anyways\x1b[0m\n", serial_port);
+        }
         printf("SERIAL: Failed to init; Do you lack a serial port at I/O port 0x%x?\n", serial_port);
         serial_works = false;
         return;

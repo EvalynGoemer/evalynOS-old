@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <drivers/x86_64/cpuid.h>
 #include <drivers/x86_64/serial.h>
 #include <utils/globals.h>
@@ -8,6 +7,7 @@
 #include <ctype.h>
 
 bool dbg_enabled = false;
+bool dbgstub_enabled = false;
 
 void setup_cmdline() {
     char *cmdline = executable_cmdline_request.response->cmdline;
@@ -63,6 +63,16 @@ void setup_cmdline() {
         }
         if (strcmp("debug=on", arg) == 0) {
             dbg_enabled = true;
+            continue;
+        }
+
+        if (strcmp("dbg=stub", arg) == 0) {
+            dbg_enabled = true;
+            dbgstub_enabled = true;
+            continue;
+        }
+        if (strcmp("debug=stub", arg) == 0) {
+            dbgstub_enabled = true;
             continue;
         }
     }

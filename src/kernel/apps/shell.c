@@ -151,8 +151,18 @@ char *to_upper(const char *s) {
     return buf;
 }
 
+volatile int sink;
 void execute_commands(const char *cmd) {
     if (strcmp("TEST", to_upper(cmd)) == 0) {
+        volatile int v;
+        v = 10 ^ sink;
+        v = v + 1;
+        v = v * 2;
+        v = v - 3;
+        v = v ^ 0x55;
+        v = v * v;
+        v = v + 42;
+        sink = v;
         printf("Test Command Executed\n");
         return;
     }

@@ -1,6 +1,7 @@
 #include "drivers/x86_64/apic/apic.h"
 #include "stdbool.h"
 #include "stddef.h"
+#include "utils/cmdline.h"
 #include <drivers/x86_64/apic/ioapic.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -39,7 +40,8 @@ void ioapic_set_entry(ioapic_t* ioapic, uint8_t index, uint64_t data) {
 }
 
 void ioapic_map_irq(ioapic_t* ioapic, uint8_t irq, uint8_t vector, uint8_t destination) {
-    if (irq == 4)
+    // HACK: just hard code this here for now; TODO: make dbgstub remap this its self
+    if (irq == 4 && dbgstub_enabled)
         vector = 0xF0;
     uint64_t redirect = vector;
     redirect |= ((uint64_t) destination << IOAPIC_DEST_SHIFT);

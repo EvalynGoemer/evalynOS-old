@@ -14,6 +14,7 @@ extern void setup_irqs();
 #define IRQL_PASSIVE  0
 #define IRQL_DISPATCH 2
 
+[[nodiscard]]
 static inline int irql_raise(int irql) {
     int old_irql = get_irql();
     if (irql < old_irql)

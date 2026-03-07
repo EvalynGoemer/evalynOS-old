@@ -60,6 +60,26 @@ int strlen_user(char *string) {
     return len;
 }
 
+uint16_t safe_read_byte(const void *addr) {
+    uint8_t value = 0;
+
+    void* ret = safe_memcpy_asm(&value, addr, 1);
+
+    if (ret == (void*)-1)
+        return 0xFFFF;
+
+    return (uint8_t)value;
+}
+
+uint16_t safe_write_byte(void *addr, uint8_t value) {
+    void* ret = safe_memcpy_asm(addr, &value, 1);
+
+    if (ret == (void*)-1)
+        return 0xFFFF;
+
+    return 0;
+}
+
 int fault_handle_safe_funcs(struct interrupt_frame* frame) {
     if (frame->ip >= (uint64_t)&safe_memcpy_asm_start &&
         frame->ip <  (uint64_t)&safe_memcpy_asm_end) {

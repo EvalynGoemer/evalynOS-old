@@ -7,3 +7,4 @@ extern void *zalloc(size_t size);
 extern void free (void *ptr);
 
 extern long long int strtoll(const char* str, char** _, int base);
+extern unsigned long long int strtoull(const char* str, char** _, int base);

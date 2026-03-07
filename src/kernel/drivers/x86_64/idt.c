@@ -39,6 +39,8 @@ void setup_idt() {
     for (int i = 0x00; i < 256; ++i)
         set_idt_entry(i, 0, 0x8E, (void (*)())isr0x16);
 
+    set_idt_entry(INTERRUPT_HANDLER_DEBUG_TRAP, 0, 0x8E, (void (*)())isr0x01);
+    set_idt_entry(INTERRUPT_HANDLER_BREAKPOINT_TRAP, 0, 0x8E, (void (*)())isr0x03);
     set_idt_entry(INTERRUPT_HANDLER_DOUBLE_FAULT, 1, 0x8E, (void (*)())isr0x08);
     set_idt_entry(INTERRUPT_HANDLER_GENERAL_PROTECTION_FAULT, 0, 0x8E, (void (*)())isr0x0D);
     set_idt_entry(INTERRUPT_HANDLER_PAGE_FAULT, 0, 0x8E, (void (*)())isr0x0E);

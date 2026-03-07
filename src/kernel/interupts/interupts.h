@@ -1,6 +1,8 @@
 #pragma once
 #include <stdint.h>
 
+#define INTERRUPT_HANDLER_DEBUG_TRAP 0x01
+#define INTERRUPT_HANDLER_BREAKPOINT_TRAP 0x03
 #define INTERRUPT_HANDLER_DOUBLE_FAULT 0x08
 #define INTERRUPT_HANDLER_GENERAL_PROTECTION_FAULT 0x0D
 #define INTERRUPT_HANDLER_PAGE_FAULT 0x0E
@@ -19,6 +21,8 @@
 
 #define INTERRUPT_HANDLER_SYSCALL 0x69
 
+extern void isr0x01();
+extern void isr0x03();
 extern void isr0x08();
 extern void isr0x0D();
 extern void isr0x0E();

@@ -58,9 +58,11 @@ dispatch_interupt_asm:
     iretq
 
 ; Exceptions
-ISR_ERR 0x08           ; DF
-ISR_ERR 0x0D           ; GPF
-ISR_ERR 0x0E           ; PF
+ISR     0x01           ; #DB
+ISR     0x03           ; #BP
+ISR_ERR 0x08           ; #DF
+ISR_ERR 0x0D           ; #GPF
+ISR_ERR 0x0E           ; #PF
 
 ; Hardware
 ISR     0x20           ; APIC Timer
