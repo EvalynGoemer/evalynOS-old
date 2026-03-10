@@ -50,7 +50,7 @@ bool acpi_verify_rsdp() {
 void* acpi_find_sdt_rsdt(char* signature) {
     struct RSDP* rsdp = (struct RSDP*)rsdp_request.response->address;
     struct RSDT *rsdt = (struct RSDT *) (rsdp->rsdtAddress + hhdm_request.response->offset);
-    int entries = (rsdt->header.length - sizeof(rsdt->header)) / 8;
+    int entries = (rsdt->header.length - sizeof(rsdt->header)) / 4;
 
     for (int i = 0; i < entries; i++) {
         struct ACPISDTHeader *header = (struct ACPISDTHeader *) (rsdt->pointerSDTs[i] + hhdm_request.response->offset);

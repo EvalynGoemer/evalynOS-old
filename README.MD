@@ -46,7 +46,8 @@ Flash the `evalynOS.iso` file to a usb with a command such as `dd if=./evalynOS.
 - `serial=on`: Enables serial on port `0x3F8` on all machines
 - `serial=on`: Enables serial on port `0x3F8` when under hypervisor
 - `serial=0xXXXX`: Enables serial on the hex I/O port given
-- `dbg=on`: Enabled extended logging
+- `dbg=on`: Enables extended logging
+- `dbg=stub`: Enables the gdb stub server. Requires a working serial port to connect
 
 ## Kernel Mode Shell Commands
 - `TEST`: Prints a test message

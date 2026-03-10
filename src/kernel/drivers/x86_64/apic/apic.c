@@ -33,10 +33,10 @@ uint64_t xapic_get_ms() {
 }
 
 uint32_t xapic_get_id() {
-    return mmio_read_offset_32(apic_address, APIC_REGISTER_ID) & ~0xFFFFFF;
+    return (mmio_read_offset_32(apic_address, APIC_REGISTER_ID) >> 24) & 0xFF;
 }
 
-void xapic_send_eoi() {
+void xapic_send_eoi(uint8_t _) {
     mmio_write_offset_32(apic_address, APIC_REGISTER_EOI, 0);
 }
 
@@ -44,7 +44,6 @@ void xapic_tsc_deadline_isr() {
     xapic_timer_ms++;
 
     wrmsr(TSC_DEADLINE, read_tsc() + (tsc_frequency / 1000));
-    mmio_write_offset_32(apic_address, APIC_REGISTER_EOI, 0);
 
     if (shouldSchedule /*&& ((xapic_timer_ms % 10) == 0)*/) {
         schedule();
@@ -53,8 +52,6 @@ void xapic_tsc_deadline_isr() {
 
 void xapic_periodic_isr() {
     xapic_timer_ms++;
-
-    mmio_write_offset_32(apic_address, APIC_REGISTER_EOI, 0);
 
     if (shouldSchedule /*&& ((xapic_timer_ms % 10) == 0)*/) {
         schedule();

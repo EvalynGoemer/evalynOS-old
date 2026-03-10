@@ -2,11 +2,9 @@
 #include <stdint.h>
 #include <stdio.h>
 
-__attribute__ ((aligned (16))) uint8_t kernel_stack[4096];
-
-__attribute__ ((aligned (16))) uint8_t df_stack[4096];
-
-__attribute__ ((aligned (16))) uint8_t nmi_stack[4096];
+[[gnu::aligned(64)]] uint8_t df_stack[4096];
+[[gnu::aligned(64)]] uint8_t nmi_stack[4096];
+[[gnu::aligned(64)]] uint8_t dbg_stack[4096 * 2];
 
 static union GDTEntry gdt[8];
 static struct GDTR gdtr;
@@ -45,9 +43,9 @@ void setup_gdt() {
     gdt_set_tss (6);               // TSS Entry 1/2       | 0x30
                                    // TSS Entry 2/2       | 0x38
 
-    tss.ist[1] = (uint64_t)(df_stack + sizeof (df_stack));
-    tss.ist[2] = (uint64_t)(nmi_stack + sizeof (nmi_stack));
-    tss.rsp0 = (uint64_t)(kernel_stack + sizeof (kernel_stack));
+    tss.ist[0] = (uint64_t)(df_stack + sizeof (df_stack));
+    tss.ist[1] = (uint64_t)(nmi_stack + sizeof (nmi_stack));
+    tss.ist[2] = (uint64_t)(dbg_stack + sizeof (dbg_stack));
 
     gdtr.limit = sizeof(gdt) - 1;
     gdtr.base = (uint64_t)&gdt;

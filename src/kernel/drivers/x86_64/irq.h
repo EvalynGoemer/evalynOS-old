@@ -5,7 +5,7 @@
 #include <drivers/x86_64/crX.h>
 
 extern void (*unmask_irq)(uint8_t);
-extern void (*send_eoi)();
+extern void (*send_eoi)(uint8_t);
 extern void setup_irqs();
 
 #define set_irql(irql) write_cr8(irql)

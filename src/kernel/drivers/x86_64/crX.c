@@ -4,12 +4,12 @@
 
 void setup_cr0() {
     __asm__ volatile (
-        "mov %%cr4, %%rax\n"
+        "mov %%cr0, %%rax\n"
         "btr $2, %%rax\n"    // clear EM
         "btr $3, %%rax\n"    // clear TS
         "bts $1, %%rax\n"    // set   MP
         "bts $5, %%rax\n"    // set   NE
-        "mov %%rax, %%cr4"
+        "mov %%rax, %%cr0"
         :
         :
         : "rax", "memory", "cc"

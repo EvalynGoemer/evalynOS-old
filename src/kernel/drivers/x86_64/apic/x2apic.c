@@ -12,7 +12,7 @@
 
 volatile uint64_t x2apic_timer_ms = 0;
 
-void x2apic_send_eoi() {
+void x2apic_send_eoi(uint8_t _) {
     wrmsr(x2APIC_EOI, 0);
 }
 
@@ -28,7 +28,6 @@ void x2apic_tsc_deadline_isr() {
     x2apic_timer_ms++;
 
     wrmsr(TSC_DEADLINE, read_tsc() + (tsc_frequency / 1000));
-    wrmsr(x2APIC_EOI, 0);
 
     if (shouldSchedule /*&& ((x2apic_timer_ms % 10) == 0)*/) {
         schedule();
@@ -37,8 +36,6 @@ void x2apic_tsc_deadline_isr() {
 
 void x2apic_periodic_isr() {
     x2apic_timer_ms++;
-
-    wrmsr(x2APIC_EOI, 0);
 
     if (shouldSchedule /*&& ((x2apic_timer_ms % 10) == 0)*/) {
         schedule();

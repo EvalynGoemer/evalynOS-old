@@ -46,8 +46,6 @@ void pic_unmask_irq(uint8_t IRQline) {
 }
 
 void setup_pic(int offset1, int offset2) {
-    __asm__ __volatile__("cli");
-
     outbd(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4);
     outbd(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
     outbd(PIC1_DATA, offset1);
@@ -60,8 +58,7 @@ void setup_pic(int offset1, int offset2) {
     outbd(PIC2_DATA, 0xFF);
 
     unmask_irq = pic_unmask_irq;
+    send_eoi = pic_send_eoi;
 
     printf("PIC: PIC Setup\n");
-
-    __asm__ __volatile__("sti");
 }

@@ -1,6 +1,6 @@
 # This file was taken and modified from https://codeberg.org/Limine/limine-c-template/raw/commit/c8bc5a2b93397a19272a19a6004b0eeb1e90d982/kernel/GNUmakefile
 
-CFLAGS := -O0 -g -gdwarf-4 -fno-omit-frame-pointer -DMUTE_KERNEL_PANIC
+CFLAGS := -O2 -g -gdwarf-4 -fno-omit-frame-pointer -DMUTE_KERNEL_PANIC
 
 # Nuke built-in rules.
 .SUFFIXES:

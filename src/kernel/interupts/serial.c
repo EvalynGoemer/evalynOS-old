@@ -19,6 +19,4 @@ void serial_isr(struct interrupt_frame* frame) {
             keyboard_buffer_index++;
         }
     }
-    pic_send_eoi(4);
-    send_eoi();
 }

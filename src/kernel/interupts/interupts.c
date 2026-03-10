@@ -19,10 +19,11 @@ void dispatch_interupt (struct interrupt_frame *frame) {
     }
 
     int new_irql = (frame->vector >> 4) & 0xf; int old_irql;
-    if (new_irql >= IRQL_DISPATCH)
+    if (new_irql >= IRQL_DISPATCH) {
         old_irql = irql_raise(new_irql);
+        send_eoi(frame->vector - 0x20);
+    }
 
-    send_eoi();
     asm volatile ("sti");
 
     switch (frame->vector) {
