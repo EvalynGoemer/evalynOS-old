@@ -96,6 +96,14 @@ void schedule() {
         if (!dbgstub_should_preempt())
             return;
     int lock1r = spinlock_lock(&scheduler_spinlock);
+    // Make sure IRQL is set to zero when unlocking as this
+    // can be called from an ISR which will not return and
+    // lower the IRQL properly. This is safe because this can
+    // only be called from contexts where IRQL should become
+    // zero after. EG the timer IRQ or places where you
+    // are not holding onto a spinlock
+    lock1r = 0;
+
     struct thread *previous_thread = threads;
     threads = threads->next_thread;
     struct thread *current_thread = threads;
