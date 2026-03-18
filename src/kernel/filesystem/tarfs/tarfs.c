@@ -68,7 +68,16 @@ int init_tarfs() {
     if (module_request.response && module_request.response->module_count > 0) {
         for (uint64_t i = 0; i < module_request.response->module_count; i++ ) {
             if (strcmp(module_request.response->modules[i]->path, "/initramfs.tar") == 0) {
-                archive = module_request.response->modules[i]->address;
+                archive = module_request.response->modules[i]->address; break;
+            }
+        }
+    }
+
+    if (module_request.response && module_request.response->module_count > 0) {
+        for (uint64_t i = 0; i < module_request.response->module_count; i++ ) {
+            if (!module_request.response->modules[i]->string) continue;
+            if (strcmp(module_request.response->modules[i]->string, "initramfs") == 0) {
+                archive = module_request.response->modules[i]->address; break;
             }
         }
     }

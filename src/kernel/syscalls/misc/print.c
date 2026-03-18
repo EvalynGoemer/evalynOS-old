@@ -5,18 +5,28 @@
 #include <stdio.h>
 
 void sys_print(struct syscall_frame* frame) {
-    int stringLength = strlen_user((char*)frame->rbx);
-    if (stringLength != -1) {
-        char* kstring = malloc(stringLength + 1);
-        if (copy_from_user(kstring, (char*)frame->rbx, stringLength + 1) == 0) {
-            printf("%s", kstring);
-        } else {
-            // TODO: send SIGSEGV or quit process
-            free(kstring);
-        }
+    char* user_ptr = (char*)frame->rbx;
+    int len = strlen_user(user_ptr);
+
+    if (len < 0)
+        goto fail;
+
+    char* kstring = malloc(len + 1);
+    if (!kstring)
+        goto fail;
+
+    if (copy_from_user(kstring, user_ptr, len + 1) != 0) {
         free(kstring);
-    } else {
-        // TODO: send SIGSEGV or quit process
+        goto fail;
     }
+
+    kstring[len] = '\0';
+    printf("%s", kstring);
+
+    free(kstring);
     frame->rax = 0;
+    return;
+
+    fail:
+    frame->rax = -1;
 }

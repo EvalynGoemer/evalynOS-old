@@ -1,35 +1,36 @@
 #pragma once
 
 #include <stdint.h>
-extern void setup_pmm();
-extern void *allocate_page();
-extern void free_page(void *page);
 
-typedef struct page {
-    uint16_t ref_count;
-    uint8_t clean:    1;
-    uint8_t used:     1;
-    uint8_t cow:      1;
+typedef enum {
+    PAGE_UNINIT = 0,
+    PAGE_FREE   = 1,
+    PAGE_USED   = 2,
+} page_state_t;
+
+typedef struct {
+    page_state_t state;
 } page_t;
 
-typedef struct pmm_child_table {
-    uint64_t num_pages;
+typedef struct pmm_freelist_node {
+    struct pmm_freelist_node* next;
+} pmm_freelist_node_t;
+
+typedef struct {
     uint64_t start;
     uint64_t end;
+    uint64_t num_pages;
     page_t pages[];
 } pmm_child_table_t;
 
-typedef struct pmm_parent_table {
+typedef struct {
     uint32_t num_child_tables;
     pmm_child_table_t* child_tables[];
 } pmm_parent_table_t;
 
-typedef struct pmm_freelist_node {
-    struct pmm_freelist_node* next;
-    uint64_t start;
-    uint64_t end;
-    uint8_t bootstrap: 1;
-} pmm_freelist_node_t;
+void  setup_pmm(void);
+void* allocate_page(void);
+void  free_page(void* phys);
 
-extern page_t* get_page_info(void* phys_addr);
-extern void* get_phys_addr_from_page_info(page_t* page);
+page_t* get_page_info(void* phys_addr);
+void*   get_phys_addr_from_page_info(page_t* page);

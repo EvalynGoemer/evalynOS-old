@@ -158,7 +158,7 @@ run:
 	cp ./bin-x86_64/kernel.elf ./src/generated/iso/kernel.elf
 	./src/build-scripts/generate-iso.sh
 	qemu-system-x86_64 \
-		-machine q35,accel=kvm,smm=on \
+		-machine q35,accel=kvm,smm=on -s \
 		-cpu host,+x2apic,+invtsc,+pdpe1gb \
 		-m 512M \
 		-drive if=pflash,format=raw,readonly=on,file=./OVMF_CODE.4m.fd \
