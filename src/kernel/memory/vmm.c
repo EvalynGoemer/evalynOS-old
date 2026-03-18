@@ -74,7 +74,65 @@ void vmm_switch_to(pagemap_t *pagemap) {
     pml1v[pml1i] |= PTE_PRESENT | flags;
     spinlock_unlock(&vmm_spinlock, lock1r);
 }
+void *vmm_get_phys(pagemap_t *pagemap, uintptr_t virt_addr) {
+    int lock1r = spinlock_lock(&vmm_spinlock);
+    uint16_t pml1i = (virt_addr >> 12) & 0x1ff;
+    uint16_t pml2i = (virt_addr >> 21) & 0x1ff;
+    uint16_t pml3i = (virt_addr >> 30) & 0x1ff;
+    uint16_t pml4i = (virt_addr >> 39) & 0x1ff;
+    if (!(pagemap->top_level[pml4i] & PTE_PRESENT)) {
+        spinlock_unlock(&vmm_spinlock, lock1r);
+        return NULL;
+    }
+    uint64_t* pml3v = (uint64_t*)((pagemap->top_level[pml4i] & PTE_MASK) + hhdm_request.response->offset);
 
+    if (!(pml3v[pml3i] & PTE_PRESENT)) {
+        spinlock_unlock(&vmm_spinlock, lock1r);
+        return NULL;
+    }
+
+    uint64_t* pml2v = (uint64_t*)((pml3v[pml3i] & PTE_MASK) + hhdm_request.response->offset);
+    if (!(pml2v[pml2i] & PTE_PRESENT)) {
+        spinlock_unlock(&vmm_spinlock, lock1r);
+        return NULL;
+    }
+    uint64_t* pml1v = (uint64_t*)((pml2v[pml2i] & PTE_MASK) + hhdm_request.response->offset);
+    if (pml1v[pml1i] & PTE_PRESENT) {
+        spinlock_unlock(&vmm_spinlock, lock1r);
+        return (void*)(pml1v[pml1i] & PTE_MASK);
+    }
+    spinlock_unlock(&vmm_spinlock, lock1r);
+    return NULL;
+}
+void vmm_unmap_page(pagemap_t *pagemap, uintptr_t virt_addr) {
+    int lock1r = spinlock_lock(&vmm_spinlock);
+    uint16_t pml1i = (virt_addr >> 12) & 0x1ff;
+    uint16_t pml2i = (virt_addr >> 21) & 0x1ff;
+    uint16_t pml3i = (virt_addr >> 30) & 0x1ff;
+    uint16_t pml4i = (virt_addr >> 39) & 0x1ff;
+
+    if (!(pagemap->top_level[pml4i] & PTE_PRESENT)) {
+        spinlock_unlock(&vmm_spinlock, lock1r);
+        return;
+    }
+    uint64_t* pml3v = (uint64_t*)((pagemap->top_level[pml4i] & PTE_MASK) + hhdm_request.response->offset);
+
+    if (!(pml3v[pml3i] & PTE_PRESENT)) {
+        spinlock_unlock(&vmm_spinlock, lock1r);
+        return;
+    }
+    uint64_t* pml2v = (uint64_t*)((pml3v[pml3i] & PTE_MASK) + hhdm_request.response->offset);
+
+    if (!(pml2v[pml2i] & PTE_PRESENT)) {
+        spinlock_unlock(&vmm_spinlock, lock1r);
+        return;
+    }
+    uint64_t* pml1v = (uint64_t*)((pml2v[pml2i] & PTE_MASK) + hhdm_request.response->offset);
+
+    pml1v[pml1i] = 0;
+    asm volatile("invlpg (%0)" ::"r"(virt_addr) : "memory");
+    spinlock_unlock(&vmm_spinlock, lock1r);
+}
 void vmm_map_pages_continuous(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr, uint64_t page_count, uint64_t flags) {
     for(uint64_t i = 0; i < page_count; i++) {
         vmm_map_page(pagemap, virt_addr + (i * PAGE_SIZE), phys_addr + (i * PAGE_SIZE), flags);

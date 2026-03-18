@@ -165,13 +165,15 @@ void valloc_init() {
     vmm_page_range_t usearch = {.vaddr = vaddr, .size = 0};
     vmm_page_range_t* uresult = RB_FIND(vmm_valloc_tree, &pagemap->used_ranges, &usearch);
     if (!uresult) {
-        return false;
         spinlock_unlock(&vma_spinlock, lock1r);
+
+        return false;
     }
     // TODO: support vfree() calls that cross regions
     if ((uresult->vaddr + uresult->size) < (vaddr + size)) {
-        return false;
         spinlock_unlock(&vma_spinlock, lock1r);
+
+        return false;
     }
 
     RB_REMOVE(vmm_valloc_tree, &pagemap->used_ranges, uresult);

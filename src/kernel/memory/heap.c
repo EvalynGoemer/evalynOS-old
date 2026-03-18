@@ -1,278 +1,113 @@
-/*
- * Arikoto
- * Copyright (c) 2025
- * Licensed under the NCSA/University of Illinois Open Source License; see the
- * following licence text
- *
- * NCSA/University of Illinois Open Source License
- *
- * Copyright (c) 2025 NerdNextDoor
- * All rights reserved.
- *
- * Developed by: Arikoto Operating System Development Project
- * https://arikoto.nerdnextdoor.net, https://codeberg.org/NerdNextDoor/arikoto
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the “Software”), to deal
- * with the Software without restriction, including without limitation the
- * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
- * sell copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimers. Redistributions in
- * binary form must reproduce the above copyright notice, this list of
- * conditions and the following disclaimers in the documentation and/or other
- * materials provided with the distribution. Neither the names of the Arikoto
- * Operating System Development Project, NerdNextDoor, nor the names of its
- * contributors may be used to endorse or promote products derived from this
- * Software without specific prior written permission.
- *
- * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH
- * THE SOFTWARE.
- */
+// Rayan Margham (Developer of Nyaux)
+// Slab allocator implementation
+// 2026 MIT license
+// Written for evalynOS
 
-// Modified by Evalyn Goemer to work with EvalynOS
-
+#include <memory/pmm.h>
+#include <memory/vmm.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-
 #include <utils/globals.h>
-#include <utils/spinlock.h>
 #include <utils/panic.h>
-#include <memory/pmm.h>
-#include <memory/vmm.h>
+#include <utils/spinlock.h>
 
-#define USER_TOP    0x0000800000000000ULL
-#define KERNEL_BASE 0xFFFF800000000000ULL
-
-static inline bool is_kernel_range(const void *p, uint64_t len) {
-    uint64_t a = (uint64_t) p;
-    bool wrap = len > ~a;
-    return !wrap && (a & (a+len) & KERNEL_BASE) == KERNEL_BASE;
-}
-
-#define is_user_range(ptr, len) ({ !is_kernel_range(ptr, len); })
-
-typedef struct heap_free_block {
+struct slab_object {
+    struct slab_object *next;
+};
+struct slab_header {
+    struct slab_header *other_slabs;
+    size_t obj_size;
+    size_t obj_am;
+    struct slab_object *objects;
+};
+struct slab_cache {
     size_t size;
-    struct heap_free_block *next;
-} heap_free_block_t;
+    struct slab_header *slabs;
+};
 
-#define MIN_ALLOC_SIZE sizeof(heap_free_block_t)
-#define HEAP_ALIGNMENT 16
-
-#define ALIGN_UP_HEAP(size) (((size) + HEAP_ALIGNMENT - 1) & ~(HEAP_ALIGNMENT - 1))
-
-#define KERNEL_HEAP_START 0xFFFFF00000000000
-#define INITIAL_HEAP_PAGES 0x4096
-#define KERNEL_HEAP_INITIAL_SIZE (INITIAL_HEAP_PAGES * PAGE_SIZE)
-
-static void *heap_start = NULL;
-static size_t heap_size = 0;
-static heap_free_block_t *free_list_head = NULL;
-
-spinlock_t heap_spinlock = {0};
-
-int heap_expand_pages(size_t pages) {
-    if (pages == 0) return 0;
-
-    uintptr_t base = (uintptr_t)heap_start + heap_size;
-    uintptr_t new_region_size = pages * PAGE_SIZE;
-
-    for (size_t i = 0; i < pages; ++i) {
-        void *phys = allocate_page();
-        if (!phys) {
-            printf("heap_expand_pages: allocate_page failed at page %lx\n", i);
-            return 0;
-        }
-        uintptr_t virt = base + (i * PAGE_SIZE);
-        vmm_map_page(&kernel_pagemap, virt, (uintptr_t)phys, PTE_PRESENT | PTE_WRITABLE | PTE_NX);
+struct slab_header *new_slab(size_t obj_size) {
+    struct slab_header *new_slab = allocate_page() + hhdm_request.response->offset;
+    new_slab->obj_size = obj_size;
+    size_t obj_am = (PAGE_SIZE - sizeof(struct slab_header)) / obj_size;
+    new_slab->obj_am = obj_am;
+    struct slab_object *prev_obj = ((void *)new_slab + sizeof(struct slab_header));
+    for (size_t i = 1; i < obj_am; i++) {
+        struct slab_object *new_ob = (((void *)new_slab + sizeof(struct slab_header)) + (i * obj_size));
+        new_ob->next = prev_obj;
+        prev_obj = new_ob;
     }
-
-    int lock1r = spinlock_lock(&heap_spinlock);
-    heap_free_block_t *new_block = (heap_free_block_t *)base;
-    new_block->size = new_region_size;
-    new_block->next = NULL;
-
-    if (!free_list_head) {
-        free_list_head = new_block;
-    } else {
-        heap_free_block_t *p = NULL;
-        heap_free_block_t *c = free_list_head;
-        while (c && (uintptr_t)c < base) {
-            p = c;
-            c = c->next;
-        }
-        if (p == NULL) {
-            new_block->next = free_list_head;
-            free_list_head = new_block;
-        } else {
-            new_block->next = p->next;
-            p->next = new_block;
-        }
-
-        if (new_block->next && ((uintptr_t)new_block + new_block->size) == (uintptr_t)new_block->next) {
-            new_block->size += new_block->next->size;
-            new_block->next = new_block->next->next;
-        }
-        if (p && ((uintptr_t)p + p->size) == (uintptr_t)new_block) {
-            p->size += new_block->size;
-            p->next = new_block->next;
-        }
-    }
-    spinlock_unlock(&heap_spinlock, lock1r);
-
-    heap_size += new_region_size;
-    return 1;
+    new_slab->objects = prev_obj;
+    return new_slab;
 }
-
+void *allocate_with_slab(struct slab_header *slab) {
+    while (true) {
+        if (slab->objects != NULL) {
+            if (slab->objects->next != NULL) {
+                struct slab_object *our_obj = slab->objects;
+                slab->objects = our_obj->next;
+                slab->obj_am -= 1;
+                return (void *)our_obj;
+            } else {
+                slab->obj_am -= 1;
+                struct slab_object *our_obj = slab->objects;
+                slab->objects = NULL;
+                return (void *)our_obj;
+            }
+        } else {
+            if (slab->other_slabs != NULL) {
+                slab = slab->other_slabs;
+            } else {
+                struct slab_header *old_slab = slab;
+                struct slab_header *new_sl = new_slab(old_slab->obj_size);
+                old_slab->other_slabs = new_sl;
+                slab = new_sl;
+            }
+        }
+    }
+}
+struct slab_cache init_slabcache(size_t obj_si) {
+    struct slab_header *new_sl = new_slab(obj_si);
+    struct slab_cache new = {.size = obj_si, .slabs = new_sl};
+    return new;
+}
+static struct slab_cache slab_caches[6] = {0};
 void setup_heap(void) {
-    if (heap_start != NULL) {
-        return;
-    }
+    slab_caches[0] = init_slabcache(32);
+    slab_caches[1] = init_slabcache(64);
+    slab_caches[2] = init_slabcache(128);
+    slab_caches[3] = init_slabcache(256);
+    slab_caches[4] = init_slabcache(512);
+    slab_caches[5] = init_slabcache(1024);
 
-    heap_start = (void *)KERNEL_HEAP_START;
-    heap_size = 0;
-
-    if (!heap_expand_pages(INITIAL_HEAP_PAGES)) {
-        panic("init_heap: failed to allocate initial kernel heap");
-    }
-
-    free_list_head = (heap_free_block_t *)heap_start;
-    free_list_head->size = heap_size;
-    free_list_head->next = NULL;
+    printf("inited slab caches\n");
 
     printf("HEAP: Heap Setup\n");
 }
 
-void heap_dump(void) {
-    printf("Heap dump: start=%lx size=%lx free-list:\n", (uint64_t)heap_start, heap_size);
-    for (heap_free_block_t *b = free_list_head; b; b = b->next) {
-        printf("block %lx size=%lx next=%p\n", (uint64_t)b, b->size, b->next);
-    }
-}
-
 void *kmalloc(size_t size) {
-    if (size == 0) return NULL;
-
-    int lock1r = spinlock_lock(&heap_spinlock);
-
-    size_t payload = ALIGN_UP_HEAP(size);
-    size_t header_sz = ALIGN_UP_HEAP(sizeof(size_t));
-    size_t total_size = payload + header_sz;
-
-    if (total_size < MIN_ALLOC_SIZE) total_size = MIN_ALLOC_SIZE;
-
-    heap_free_block_t *prev = NULL;
-    heap_free_block_t *curr = free_list_head;
-
-    retry_search:
-    while (curr) {
-        if (curr->size >= total_size) {
-            if (curr->size >= total_size + MIN_ALLOC_SIZE) {
-                heap_free_block_t *new_block = (heap_free_block_t *)((uintptr_t)curr + total_size);
-                new_block->size = curr->size - total_size;
-                new_block->next = curr->next;
-
-                curr->size = total_size;
-
-                if (prev == NULL) {
-                    free_list_head = new_block;
-                } else {
-                    prev->next = new_block;
-                }
-            } else {
-                if (prev == NULL) {
-                    free_list_head = curr->next;
-                } else {
-                    prev->next = curr->next;
-                }
-            }
-
-            size_t *size_ptr = (size_t *)curr;
-            *size_ptr = curr->size;
-
-            void *user_ptr = (void *)((uintptr_t)curr + header_sz);
-            spinlock_unlock(&heap_spinlock, lock1r);
-            return user_ptr;
-        }
-        prev = curr;
-        curr = curr->next;
-    }
-
-    spinlock_unlock(&heap_spinlock, lock1r);
-    if (!heap_expand_pages(16)) {
-        if (!heap_expand_pages(1)) {
-            printf("kmalloc: Out of heap memory (requested %lx bytes)\n", size);
-            heap_dump();
-            return NULL;
+    for (size_t i = 0; i < 6; i++) {
+        if (size <= slab_caches[i].size) {
+            return allocate_with_slab(slab_caches[i].slabs);
         }
     }
-    lock1r = spinlock_lock(&heap_spinlock);
-    prev = NULL;
-    curr = free_list_head;
-    goto retry_search;
+    panic("no mem");
+    return NULL;
 }
 
 void kfree(void *ptr) {
-    int lock1r = spinlock_lock(&heap_spinlock);
-    if (!is_kernel_range(ptr, 4096)) {
-        printf("kHEAP: Attempted to free user memory @ 0x%llx", (uint64_t)ptr);
-        panic("kHEAP: Attempted to free user memory");
-    }
-
-    size_t header_sz = ALIGN_UP_HEAP(sizeof(size_t));
-    size_t *size_ptr = (size_t *)((uintptr_t)ptr - header_sz);
-    void *block_start = (void *)size_ptr;
-    size_t block_size = *size_ptr;
-
-    if ((uintptr_t)block_start < (uintptr_t)heap_start ||
-        (uintptr_t)block_start >= (uintptr_t)heap_start + heap_size) {
-        panic("kfree: invalid pointer (out of heap range)");
+    if (ptr == NULL) {
         return;
-        }
-        if (block_size < MIN_ALLOC_SIZE) {
-            panic("kfree: invalid block size");
-            return;
-        }
-        if (((uintptr_t)block_start & (HEAP_ALIGNMENT - 1)) != 0) {
-            panic("kfree: alignment error");
-            return;
-        }
-
-        heap_free_block_t *prev = NULL;
-        heap_free_block_t *curr = free_list_head;
-        while (curr && (uintptr_t)curr < (uintptr_t)block_start) {
-            prev = curr;
-            curr = curr->next;
-        }
-
-        heap_free_block_t *freed = (heap_free_block_t *)block_start;
-        freed->size = block_size;
-
-        if (prev == NULL) {
-            freed->next = free_list_head;
-            free_list_head = freed;
-        } else {
-            freed->next = prev->next;
-            prev->next = freed;
-        }
-
-        if (freed->next && ((uintptr_t)freed + freed->size) == (uintptr_t)freed->next) {
-            freed->size += freed->next->size;
-            freed->next = freed->next->next;
-        }
-        if (prev && ((uintptr_t)prev + prev->size) == (uintptr_t)freed) {
-            prev->size += freed->size;
-            prev->next = freed->next;
-        }
-    spinlock_unlock(&heap_spinlock, lock1r);
+    }
+    struct slab_header *hea = (struct slab_header *)((uint64_t)ptr & ~0xFFF);
+    memset(ptr, 0, hea->obj_size);
+    if (hea->objects == NULL) {
+        hea->objects = (struct slab_object *)ptr;
+        hea->obj_am += 1;
+    } else {
+        ((struct slab_object *)ptr)->next = hea->objects;
+        hea->objects = (struct slab_object *)ptr;
+        hea->obj_am += 1;
+    }
 }
