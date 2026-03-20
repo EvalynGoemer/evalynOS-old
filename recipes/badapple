@@ -1,0 +1,20 @@
+#!/bin/sh
+
+name=badapple
+version=0.0git
+revision=0
+skip_pkg_check=yes
+
+hostdeps="gcc"
+deps="mlibc mlibc-headers"
+
+source_dir="user/badapple"
+
+build() {
+    cp -rpf "${source_dir}"/. ./
+    ./make.sh
+}
+
+package() {
+    cp ./badapple.elf ${dest_dir}
+}

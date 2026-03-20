@@ -3,34 +3,12 @@ A W.I.P 64 Bit OS Kernel
 
 ## Compiling & Running
 
-You will need to install the following arch packages to compile (Non inclusive, More testing needs to be done)
-- base-devel
-- clang
-- lld
-- python3
-- qemu-desktop
-- edk2-ovmf
-- limine
-- mason
-- ninja
-- Dependancies for GCC & Binutils
+This kernel uses the [jinx](https://codeberg.org/Mintsuki/jinx) meta build system to compile. You will need all dependancies for such.
 
-Run the script in `/src/libc/build-libc.sh` to build libc
-
-Delete the generated dot files to have the script recompile things if needed.
-
-Add `/src/libc/toolchain/usr/bin/` to your path aswell for things to compile right
-
-Compile with `make`
-
-Run and compile with `make run`
-
-Run and compile and generate symbols (Compiles twice) with `make debug`
-
-## Compile Flags
-- `-DMUTE_KERNEL_PANIC`: Disables the 1khz tone played on a kernel panic for when doing active work on the kernel
-
-Add these flags to the `GNUmakefile` `CFLAGS` section
+Run `make bootstrap` to build the required things for compiling everything else  
+Run `make initramfs` to build all packages for the initramfs and generate it  
+Run `make run` to build the ISO and run it in QEMU  
+Run `make mkiso` to build the ISO
 
 ## Real Hardware
 This kernel is designed to be able to run on *REAL* hardware if it meets the following requirements

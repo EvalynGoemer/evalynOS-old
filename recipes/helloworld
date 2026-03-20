@@ -1,0 +1,20 @@
+#!/bin/sh
+
+name=helloworld
+version=0.0git
+revision=0
+skip_pkg_check=yes
+
+hostdeps="gcc"
+deps="mlibc mlibc-headers"
+
+source_dir="user/hello_world"
+
+build() {
+    cp -rpf "${source_dir}"/. ./
+    ./make.sh
+}
+
+package() {
+    cp ./hello_world.elf ${dest_dir}
+}

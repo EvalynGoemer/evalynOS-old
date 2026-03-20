@@ -1,0 +1,23 @@
+#!/bin/sh
+
+name=kernel
+version=0.0git
+revision=0
+skip_pkg_check=yes
+
+source_dir="kernel"
+
+allow_network=yes
+
+early_prepare() {
+    ./get-deps
+}
+
+build() {
+    cp -rpf "${source_dir}"/. ./
+    CFLAGS="$KERNEL_CFLAGS -O2 -pipe" make -j${parallelism}
+}
+
+package() {
+    cp ./bin-${JINX_ARCH}/kernel.elf ${dest_dir}
+}

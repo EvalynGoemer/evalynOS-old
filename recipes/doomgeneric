@@ -1,0 +1,40 @@
+#!/bin/sh
+
+name=doomgeneric
+version=0.0git
+revision=0
+skip_pkg_check=yes
+
+hostdeps="gcc"
+deps="mlibc mlibc-headers"
+
+allow_network=yes
+tarball_url="https://github.com/ozkl/doomgeneric/archive/fc601639494e089702a1ada082eb51aaafc03722.tar.gz"
+tarball_sha256="6a5879c5f686199f0156ea8abcdaab820350c3a74aff211e81558f8675c8e2d5"
+
+DOOM_SHAREWARE_WAD_URL="https://ia801909.us.archive.org/view_archive.php?archive=/2/items/doom_20230531/doom_dos.ZIP&file=DOOM1.WAD"
+DOOM_SHAREWARE_WAD_HASH="1d7d43be501e67d927e415e0b8f3e29c3bf33075e859721816f652a526cac771"
+
+configure() {
+    FILE="./DOOM1.WAD"
+    wget -O "${FILE}" "${DOOM_SHAREWARE_WAD_URL}"
+    CALCULATED_HASH=$(sha256sum "$FILE" | awk '{print $1}')
+    if [ "${CALCULATED_HASH}" != "${DOOM_SHAREWARE_WAD_HASH}" ]; then
+        echo "Hash mismatch for ${FILE}. Expected ${DOOM_SHAREWARE_WAD_HASH} but got ${CALCULATED_HASH}."
+        echo "Deleting bad file ${FILE}"
+        rm ${FILE}
+        exit 1
+    fi
+}
+
+build() {
+    cp -rpf "${source_dir}"/. ./
+    cd doomgeneric
+    make -f ./Makefile.evalynos -j$(nproc)
+    x86_64-evalynos-strip ./doomgeneric.elf
+}
+
+package() {
+    cp ./doomgeneric/doomgeneric.elf ${dest_dir}
+    cp ./DOOM1.WAD ${dest_dir}
+}

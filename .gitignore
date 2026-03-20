@@ -1,3 +1,8 @@
+# Jinx
+.jinx-cache
+jinx
+sources
+
 # Compiled Files
 *.efi
 *.EFI
@@ -6,22 +11,14 @@
 *.so
 *.bin
 *.sys
+*.d
 /obj*/
 /bin*/
-
-# Generated files
-/src/generated/*.c
-/src/generated/*.hash
-initramfs.tar
-*.iso
 
 # QEMU Files
 OVMF*
 NvVars
 qemu_log.txt
-
-# Deps
-.deps-obtained
 
 # Misc
 *.kate-swp
@@ -33,4 +30,5 @@ qemu_log.txt
 *.hashes
 *.sig
 *.idx
+*.iso
 compile_commands.json

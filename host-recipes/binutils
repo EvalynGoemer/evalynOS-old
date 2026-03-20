@@ -1,0 +1,25 @@
+#! /bin/sh
+
+name=binutils
+from_source=binutils
+revision=0
+
+configure() {
+    CFLAGS="$HOST_CFLAGS" \
+    CXXFLAGS="$HOST_CXXFLAGS" \
+    LDFLAGS="$HOST_LDFLAGS" \
+    "${source_dir}"/configure \
+        --target=x86_64-evalynos \
+        --prefix="${prefix}" \
+        --with-sysroot="${sysroot_dir}" \
+        --disable-werror \
+        --enable-default-execstack=no
+}
+
+build() {
+    make -j${parallelism}
+}
+
+package() {
+    DESTDIR="${dest_dir}" make install
+}

@@ -1,0 +1,26 @@
+#!/bin/sh
+
+name=mlibc
+version=0.0git
+revision=0
+from_source=mlibc
+hostdeps="gcc"
+
+allow_network=yes
+
+configure() {
+    cp -rpf "${source_dir}/." ./
+    meson setup build . \
+        --cross-file="${base_dir}/extras/mlibc-evalynos.cross" \
+        --prefix="${prefix}" \
+        -Dno_headers=true \
+        -Ddefault_library=static
+}
+
+build() {
+    ninja -C build -j"${parallelism}"
+}
+
+package() {
+    DESTDIR="${dest_dir}" ninja -C build install
+}

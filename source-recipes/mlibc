@@ -1,0 +1,8 @@
+#!/bin/sh
+
+name=mlibc
+version=0.0git
+allow_network=yes
+
+git_url="https://github.com/managarm/mlibc.git"
+commit="552440d5c9eccec94e44322de6b5d0c4865bbaa9"

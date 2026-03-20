@@ -1,0 +1,21 @@
+#!/bin/sh
+
+name=mlibc-headers
+version=0.0git
+revision=0
+from_source=mlibc
+
+configure() {
+    meson setup headers-build "${source_dir}" \
+        --cross-file="${base_dir}/extras/mlibc-evalynos.cross" \
+        --prefix="${prefix}" \
+        -Dheaders_only=true
+}
+
+build() {
+    ninja -C headers-build -j"${parallelism}"
+}
+
+package() {
+    DESTDIR="${dest_dir}" ninja -C headers-build install
+}

@@ -1,7 +1,0 @@
-.got*
-.patched*
-.built*
-sysroot
-toolchain
-binutils-*
-gcc-*
