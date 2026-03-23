@@ -3,7 +3,7 @@ A W.I.P 64 Bit OS Kernel
 
 ## Compiling & Running
 
-This kernel uses the [jinx](https://codeberg.org/Mintsuki/jinx) meta build system to compile. You will need all dependancies for such.
+This kernel uses the [jinx](https://codeberg.org/Mintsuki/jinx) meta build system to compile. You will need all dependancies for such. If you use the [nix](https://nixos.org/) package manager, you can run a developer shell with all necessary dependencies with `nix develop`.
 
 Run `make bootstrap` to build the required things for compiling everything else  
 Run `make initramfs` to build all packages for the initramfs and generate it  
