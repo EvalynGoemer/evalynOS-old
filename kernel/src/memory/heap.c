@@ -81,8 +81,6 @@ void setup_heap(void) {
     slab_caches[4] = init_slabcache(512);
     slab_caches[5] = init_slabcache(1024);
 
-    printf("inited slab caches\n");
-
     printf("HEAP: Heap Setup\n");
 }
 

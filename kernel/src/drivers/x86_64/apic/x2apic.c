@@ -7,6 +7,7 @@
 #include <drivers/x86_64/irq.h>
 #include <drivers/x86_64/timers/tsc.h>
 #include <scheduler/scheduler.h>
+#include <utils/cpulocal.h>
 #include <drivers/timer.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -31,7 +32,7 @@ void x2apic_tsc_deadline_isr() {
     wrmsr(TSC_DEADLINE, read_tsc() + (tsc_frequency / 1000));
 
     if (shouldSchedule /*&& ((x2apic_timer_ms % 10) == 0)*/) {
-        preempt_next = true;
+        CPU_LOCAL_WRITE(irq_should_preempt, true);
     }
 }
 
@@ -39,7 +40,7 @@ void x2apic_periodic_isr() {
     x2apic_timer_ms++;
 
     if (shouldSchedule /*&& ((x2apic_timer_ms % 10) == 0)*/) {
-        preempt_next = true;
+        CPU_LOCAL_WRITE(irq_should_preempt, true);
     }
 }
 

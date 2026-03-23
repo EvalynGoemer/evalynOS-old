@@ -10,9 +10,10 @@
 #include <drivers/timer.h>
 #include <drivers/dbgstub/dbgstub.h>
 #include <utils/cmdline.h>
+#include <utils/cpulocal.h>
 #include <string.h>
 
-bool preempt_next = false;
+CPU_LOCAL bool irq_should_preempt = false;
 
 void dispatch_interupt (struct interrupt_frame *frame) {
     if (frame->cs & 0x3) {
@@ -73,9 +74,9 @@ void dispatch_interupt (struct interrupt_frame *frame) {
             break;
     }
 
-    if (new_irql >= IRQL_DISPATCH) {
-        if (preempt_next) {
-            preempt_next = false;
+    if (new_irql <= IRQL_DISPATCH) {
+        if (CPU_LOCAL_READ(irq_should_preempt)) {
+            CPU_LOCAL_WRITE(irq_should_preempt, false);
             schedule();
         }
         irql_lower(old_irql);

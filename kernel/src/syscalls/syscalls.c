@@ -1,3 +1,4 @@
+#include "utils/cpulocal.h"
 #include <stdio.h>
 #include <stdint.h>
 
@@ -9,6 +10,8 @@
 
 #include <drivers/x86_64/msr.h>
 #include <drivers/x86_64/rflags.h>
+
+CPU_LOCAL uint64_t syscall_scratch_space;
 
 #define MAX_SYSCALLS 256
 void (*syscalls[MAX_SYSCALLS])(struct syscall_frame* frame) = {NULL};

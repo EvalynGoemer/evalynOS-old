@@ -1,5 +1,7 @@
+#include "interupts/interupts.h"
 #include "memory/vma.h"
 #include "memory/vmm.h"
+#include "utils/cpulocal.h"
 #include "utils/mmio.h"
 #include <drivers/x86_64/apic/apic.h>
 #include <drivers/x86_64/apic/x2apic.h>
@@ -46,7 +48,7 @@ void xapic_tsc_deadline_isr() {
     wrmsr(TSC_DEADLINE, read_tsc() + (tsc_frequency / 1000));
 
     if (shouldSchedule /*&& ((xapic_timer_ms % 10) == 0)*/) {
-        preempt_next = true;
+        CPU_LOCAL_WRITE(irq_should_preempt, true);
     }
 }
 
@@ -54,7 +56,7 @@ void xapic_periodic_isr() {
     xapic_timer_ms++;
 
     if (shouldSchedule /*&& ((xapic_timer_ms % 10) == 0)*/) {
-        preempt_next = true;
+        CPU_LOCAL_WRITE(irq_should_preempt, true);
     }
 }
 

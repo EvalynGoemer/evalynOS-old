@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -32,7 +33,8 @@
 #include <syscalls/syscalls.h>
 #include <utils/safe_user_funcs.h>
 #include <utils/macros.h>
-#include "drivers/dbgstub/dbgstub.h"\
+#include "drivers/dbgstub/dbgstub.h"
+#include <utils/cpulocal.h>
 
 #include <acpi/acpi.h>
 
@@ -145,6 +147,7 @@ void kmain(void) {
     shouldSchedule = 1;
 
     while (1) {
+        CPU_LOCAL_WRITE(irq_should_preempt, true);
         asm("hlt");
     }
 }

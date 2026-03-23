@@ -57,4 +57,4 @@ extern void dispatch_interupt (struct interrupt_frame *frame);
 #include <interupts/generic.h>
 #include <interupts/serial.h>
 
-extern bool preempt_next;
+extern bool irq_should_preempt;

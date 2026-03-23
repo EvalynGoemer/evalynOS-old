@@ -1,11 +1,16 @@
 global syscall_handler
 extern execute_syscall
+extern current_thread
+extern syscall_scratch_space
 
 syscall_handler:
     swapgs
 
-    mov [gs:32], rsp
-    mov rsp, [gs:24]
+    mov [rel gs:syscall_scratch_space], r15
+    mov r15, [rel gs:current_thread]
+    mov [r15 + 32], rsp
+    mov rsp, [r15 + 24]
+    mov r15, [rel gs:syscall_scratch_space]
 
     push rax
     push rbx
@@ -45,8 +50,11 @@ syscall_handler:
     pop rbx
     pop rax
 
-    mov [gs:24], rsp
-    mov rsp, [gs:32]
+    mov [rel gs:syscall_scratch_space], r15
+    mov r15, [rel gs:current_thread]
+    mov [r15 + 24], rsp
+    mov rsp, [r15 + 32]
+    mov r15, [rel gs:syscall_scratch_space]
 
     swapgs
 

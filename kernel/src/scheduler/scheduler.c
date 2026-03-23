@@ -19,6 +19,7 @@
 #include <drivers/x86_64/gdt.h>
 #include <drivers/x86_64/msr.h>
 #include <utils/panic.h>
+#include <utils/cpulocal.h>
 
 uint64_t STACK_SIZE = 65536;
 
@@ -31,6 +32,7 @@ void task_quit() {
 spinlock_t scheduler_spinlock = {0};
 struct thread* threads = NULL;
 _Atomic int next_thread_id = 0;
+CPU_LOCAL struct thread* current_thread;
 
 void create_thread(void (*entry_point)(void), pagemap_t *pagemap) {
     int lock1r = spinlock_lock(&scheduler_spinlock);
@@ -106,19 +108,19 @@ void schedule() {
 
     struct thread *previous_thread = threads;
     threads = threads->next_thread;
-    struct thread *current_thread = threads;
+    struct thread *next_thread = threads;
 
     while (threads->sleep_awake_time > timer_get_ms()) {
         threads = threads->next_thread;
-        current_thread = threads;
+        next_thread = threads;
     }
 
-    while (current_thread->thread_state == THREAD_STATE_REAPING) {
+    while (next_thread->thread_state == THREAD_STATE_REAPING) {
         int lock2r = spinlock_lock(&reaper_spinlock);
-        struct thread *to_reap = current_thread;
-        previous_thread->next_thread = current_thread->next_thread;
-        threads = current_thread->next_thread;
-        current_thread = threads;
+        struct thread *to_reap = next_thread;
+        previous_thread->next_thread = next_thread->next_thread;
+        threads = next_thread->next_thread;
+        next_thread = threads;
         to_reap->next_thread = NULL;
 
         if (threads_to_reap == NULL) {
@@ -130,33 +132,33 @@ void schedule() {
         spinlock_unlock(&reaper_spinlock, lock2r);
     }
 
-    if (current_thread == previous_thread) {
+    if (next_thread == previous_thread) {
         spinlock_unlock(&scheduler_spinlock, lock1r);
         return;
     }
 
-    vmm_switch_to(current_thread->pagemap);
+    vmm_switch_to(next_thread->pagemap);
 
     if (fred_enbled) {
-        wrmsr(FRED_RSP0, (uint64_t)current_thread->stack_top);
+        wrmsr(FRED_RSP0, (uint64_t)next_thread->stack_top);
     }
 
-    tss.rsp0 = (uint64_t)current_thread->stack_top;
+    tss.rsp0 = (uint64_t)next_thread->stack_top;
 
     if (previous_thread->is_user_task) {
         asm volatile("fxsave %0 "::"m"(previous_thread->fpu_state));
         previous_thread->fsbase = rdmsr(FSBAS);
     }
 
-    if (current_thread->is_user_task) {
-        asm volatile("fxrstor %0 "::"m"(current_thread->fpu_state));
-        wrmsr(FSBAS, current_thread->fsbase);
+    if (next_thread->is_user_task) {
+        asm volatile("fxrstor %0 "::"m"(next_thread->fpu_state));
+        wrmsr(FSBAS, next_thread->fsbase);
     }
 
-    wrmsr(UGSBAS, (uint64_t)current_thread);
+    CPU_LOCAL_WRITE64(current_thread, next_thread);
 
     uint64_t* old_rsp = &previous_thread->krsp;
-    uint64_t  new_rsp = current_thread->krsp;
+    uint64_t  new_rsp = next_thread->krsp;
     thread_switch(&scheduler_spinlock, lock1r, old_rsp, new_rsp);
 }
 

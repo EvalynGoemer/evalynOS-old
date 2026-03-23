@@ -59,6 +59,15 @@ SECTIONS
         *(.data .data.*)
     } :data
 
+    . += CONSTANT(MAXPAGESIZE);
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
+    .cpu_local : {
+        __cpu_local_start = .;
+        *(.cpu_local)
+        . = ALIGN(CONSTANT(MAXPAGESIZE));
+        __cpu_local_end   = .;
+    }
+
     /* NOTE: .bss needs to be the last thing mapped to :data, otherwise lots of */
     /* unnecessary zeros will be written to the binary. */
     /* If you need, for example, .init_array and .fini_array, those should be placed */

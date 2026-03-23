@@ -1,3 +1,4 @@
+#include "drivers/x86_64/msr.h"
 #include <drivers/x86_64/gdt.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -53,6 +54,9 @@ void setup_gdt() {
     lgdt(&gdtr);
     reloadSegments();
     ltr(0x30);
+
+    wrmsr(UGSBAS, 0);
+    wrmsr(KGSBAS, 0);
 
     printf("GDT: GDT Setup\n");
 }
