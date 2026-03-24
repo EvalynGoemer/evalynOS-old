@@ -37,7 +37,13 @@ struct thread {
     char fpu_state[512] __attribute__((aligned(16)));
 };
 
-extern void create_thread(void (*entry_point)(void), pagemap_t *pagemap);
+typedef struct args {
+    uint64_t arg1, arg2, arg3, arg4, arg5, arg6;
+} args_t;
+
+#define NO_ARGS (args_t){0}
+
+void create_thread(void* entry_point, pagemap_t *pagemap, args_t args);
 extern void schedule();
 
 struct thread *get_current_thread();

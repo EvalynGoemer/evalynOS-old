@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stddef.h>
+#include <stdlib.h>
 
 void* memcpy(void* dst, const void* src, size_t n) {
     void* tmp = dst;
@@ -93,4 +94,13 @@ char *strchr(const char *s, char c) {
         return (char*)s;
 
     return NULL;
+}
+
+char *strdup(const char *s) {
+    if (!s) return NULL;
+    size_t len = strlen(s) + 1;
+    char *copy = malloc(len);
+    if (!copy) return NULL;
+    memcpy(copy, s, len);
+    return copy;
 }

@@ -21,7 +21,7 @@
 #include "shell.h"
 #include "drivers/timer.h"
 
-void badapple_kthread() {
+void spawn_app_kthread(char* path) {
     valloc(get_current_thread()->pagemap, 64 * 1024, 0x80000000);
     uintptr_t stack_top = 0x80000000;
     size_t stack_size = 64 * 1024;
@@ -43,83 +43,13 @@ void badapple_kthread() {
     stack_top = (uintptr_t)stack;
 
     void* elf_file = malloc(16 * 1024 * 1024);
-
-    fs_read("/badapple.elf", elf_file, 16 * 1024 * 1024);
-
-    uint64_t start_addr = load_elf(elf_file, get_current_thread()->pagemap);
-    free(elf_file);
-    if (start_addr != 0) {
-        if (fred_enbled) {
-            fred_switch_to_user(start_addr, stack_top);
-        } else {
-            switch_to_user(start_addr, stack_top);
-        }
-    }
-}
-
-void helloWorld_kthread() {
-    valloc(get_current_thread()->pagemap, 64 * 1024, 0x80000000);
-    uintptr_t stack_top = 0x80000000;
-    size_t stack_size = 64 * 1024;
-
-    for (size_t i = stack_top; i > stack_top - stack_size; i -= PAGE_SIZE) {
-        uintptr_t pa = (uintptr_t)allocate_page();
-        vmm_map_page(get_current_thread()->pagemap, i, pa, PTE_PRESENT | PTE_USER | PTE_WRITABLE);
-    }
-
-    uint64_t *stack = (uint64_t *)stack_top;
-
-    rflags_set_ac();
-    *--stack = 0; // alignment
-    *--stack = 0; // envp
-    *--stack = 0; // argv
-    *--stack = 0; // argc
-    rflags_clr_ac();
-
-    stack_top = (uintptr_t)stack;
-
-    void* elf_file = malloc(16 * 1024 * 1024);
-
-    fs_read("/hello_world.elf", elf_file, 16 * 1024 * 1024);
+    fs_read(path, elf_file, 16 * 1024 * 1024);
 
     uint64_t start_addr = load_elf(elf_file, get_current_thread()->pagemap);
+
     free(elf_file);
-    if (start_addr != 0) {
-        if (fred_enbled) {
-            fred_switch_to_user(start_addr, stack_top);
-        } else {
-            switch_to_user(start_addr, stack_top);
-        }
-    }
-}
+    free(path);
 
-void doom_kthread() {
-    valloc(get_current_thread()->pagemap, 64 * 1024, 0x80000000);
-    uintptr_t stack_top = 0x80000000;
-    size_t stack_size = 64 * 1024;
-
-    for (size_t i = stack_top; i > stack_top - stack_size; i -= PAGE_SIZE) {
-        uintptr_t pa = (uintptr_t)allocate_page();
-        vmm_map_page(get_current_thread()->pagemap, i, pa, PTE_PRESENT | PTE_USER | PTE_WRITABLE);
-    }
-
-    uint64_t *stack = (uint64_t *)stack_top;
-
-    rflags_set_ac();
-    *--stack = 0; // alignment
-    *--stack = 0; // envp
-    *--stack = 0; // argv
-    *--stack = 0; // argc
-    rflags_clr_ac();
-
-    stack_top = (uintptr_t)stack;
-
-    void* elf_file = malloc(16 * 1024 * 1024);
-
-    fs_read("/doomgeneric.elf", elf_file, 16 * 1024 * 1024);
-
-    uint64_t start_addr = load_elf(elf_file, get_current_thread()->pagemap);
-    free(elf_file);
     if (start_addr != 0) {
         if (fred_enbled) {
             fred_switch_to_user(start_addr, stack_top);
@@ -219,13 +149,15 @@ void execute_commands(const char *cmd) {
     }
     if (strcmp("BADAPPLE", to_upper(cmd)) == 0) {
         pagemap_t* pagemap = new_pagemap();
-        create_thread(badapple_kthread, pagemap);
+        char* path = strdup("/badapple.elf");
+        create_thread(spawn_app_kthread, pagemap, (args_t){(uint64_t)path,0,0,0,0,0});
         printf("Started playing BAD APPLE in userspace\n");
         return;
     }
     if (strcmp("HELLO", to_upper(cmd)) == 0) {
         pagemap_t* pagemap = new_pagemap();
-        create_thread(helloWorld_kthread, pagemap);
+        char* path = strdup("/hello_world.elf");
+        create_thread(spawn_app_kthread, pagemap, (args_t){(uint64_t)path,0,0,0,0,0});
         printf("Started playing HELLO in userspace\n");
         return;
     }
@@ -237,7 +169,8 @@ void execute_commands(const char *cmd) {
             uint64_t tsc = __rdtsc();
             int sleep_time = (tsc % 1) + 1;
             pagemap_t* pagemap = new_pagemap();
-            create_thread(helloWorld_kthread, pagemap);
+            char* path = strdup("/hello_world.elf");
+            create_thread(spawn_app_kthread, pagemap, (args_t){(uint64_t)path,0,0,0,0,0});
             timer_blocking_sleep_ms(sleep_time);
             if (i % 10 == 0)
                 schedule();
@@ -246,7 +179,8 @@ void execute_commands(const char *cmd) {
     }
     if (strcmp("DOOM", to_upper(cmd)) == 0) {
         pagemap_t* pagemap = new_pagemap();
-        create_thread(doom_kthread, pagemap);
+        char* path = strdup("/doomgeneric.elf");
+        create_thread(spawn_app_kthread, pagemap, (args_t){(uint64_t)path,0,0,0,0,0});
         printf("Started playing DOOM in userspace\n");
         return;
     }

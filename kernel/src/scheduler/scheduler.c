@@ -24,8 +24,9 @@
 uint64_t STACK_SIZE = 65536;
 
 void task_quit() {
+    get_current_thread()->thread_state = THREAD_STATE_REAPING;
     while (1) {
-
+        schedule();
     }
 }
 
@@ -34,8 +35,7 @@ struct thread* threads = NULL;
 _Atomic int next_thread_id = 0;
 CPU_LOCAL struct thread* current_thread;
 
-void create_thread(void (*entry_point)(void), pagemap_t *pagemap) {
-    int lock1r = spinlock_lock(&scheduler_spinlock);
+void create_thread(void* entry_point, pagemap_t *pagemap, args_t args) {
     bool had_threads = (threads != NULL);
 
     struct thread* new_thread = malloc(sizeof(struct thread));
@@ -71,18 +71,22 @@ void create_thread(void (*entry_point)(void), pagemap_t *pagemap) {
     if (entry_point == NULL) {
         entry_point = task_quit;
     }
+
+    *--stack = 0;         // alignment
     *--stack = (uint64_t)task_quit;
     *--stack = (uint64_t)entry_point;
+    *--stack = (uint64_t)thread_init_trampoline;
 
-    *--stack = 0;
-    *--stack = 0;
-    *--stack = 0;
-    *--stack = 0;
-    *--stack = 0;
-    *--stack = 0;
+    *--stack = args.arg1; // rbx
+    *--stack = args.arg2; // rbp
+    *--stack = args.arg3; // r12
+    *--stack = args.arg4; // r13
+    *--stack = args.arg5; // r14
+    *--stack = args.arg6; // r15
 
     new_thread->krsp = (uint64_t)stack;
 
+    int lock1r = spinlock_lock(&scheduler_spinlock);
     if (!had_threads) {
         threads = new_thread;
         new_thread->next_thread = new_thread;

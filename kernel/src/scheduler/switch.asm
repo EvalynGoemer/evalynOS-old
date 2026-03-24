@@ -1,5 +1,5 @@
 global thread_switch
-global thread_switch_user
+global thread_init_trampoline
 global switch_to_user
 extern spinlock_unlock_nil
 
@@ -8,6 +8,16 @@ x87fpu dw 0x0C3F
 ssefpu dd 0x1F80
 
 section .text
+
+thread_init_trampoline:
+    mov rdi, rbx
+    mov rsi, rbp
+    mov rdx, r12
+    mov rcx, r13
+    mov r8,  r14
+    mov r9,  r15
+    ret
+
 thread_switch:
     push rbx
     push rbp
@@ -28,8 +38,6 @@ thread_switch:
     pop rbx
     ret
 
-USER_STACK_TOP equ 0x0000000080000000
-
 switch_to_user:
     cli
     swapgs
@@ -40,4 +48,18 @@ switch_to_user:
     mov r11, 0x202
     mov rcx, rdi
     mov rsp, rsi
+
+    xor eax, eax
+    xor ebx, ebx
+    xor edx, edx
+    xor esi, esi
+    xor edi, edi
+    xor ebp, ebp
+    xor r8d,  r8d
+    xor r9d,  r9d
+    xor r10d, r10d
+    xor r12d, r12d
+    xor r13d, r13d
+    xor r14d, r14d
+    xor r15d, r15d
     o64 sysret

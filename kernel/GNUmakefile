@@ -45,10 +45,11 @@ override CC_IS_CLANG := $(shell ! $(CC) --version 2>/dev/null | grep -q '^Target
 override CFLAGS += \
     -Wall \
     -Wextra \
-    -std=gnu11 \
-    -flto \
+    -std=gnu23 \
     -ffreestanding \
+    -flto \
     -fstack-protector-all \
+    -fsanitize=undefined \
     -fno-PIC \
     -fno-pie \
     -ffunction-sections \

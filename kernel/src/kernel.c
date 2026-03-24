@@ -1,4 +1,3 @@
-#include <stdint.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -50,7 +49,7 @@
 #include <scheduler/switch.h>
 #include <apps/shell.h>
 
-void kmain(void) {
+void kmain() {
     if (LIMINE_BASE_REVISION_SUPPORTED(limine_base_revision) == false) {
         __asm__ __volatile__("hlt");
 
@@ -141,9 +140,9 @@ void kmain(void) {
         timer_blocking_sleep_ms(1);
     }
 
-    create_thread(idle_thread, NULL);
-    create_thread(reaper_thread, NULL);
-    create_thread(start_shell, NULL);
+    create_thread(idle_thread, NULL, NO_ARGS);
+    create_thread(reaper_thread, NULL, NO_ARGS);
+    create_thread(start_shell, NULL, NO_ARGS);
     shouldSchedule = 1;
 
     while (1) {
