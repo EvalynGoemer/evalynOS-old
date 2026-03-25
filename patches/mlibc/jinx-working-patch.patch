@@ -1,20 +1,10 @@
-diff --git a/.gitignore b/.gitignore
-index bdef4a5..bcf808d 100644
---- a/.gitignore
-+++ b/.gitignore
-@@ -6,3 +6,5 @@
- .vscode
- compile_commands.json
- /linux-headers
-+
-+/.cache
 diff --git a/meson.build b/meson.build
-index eaf06d6..97fd1f8 100644
+index 1f208937..3389845e 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -276,6 +276,8 @@ elif host_machine.system() == 'menix'
- 	rtld_include_dirs += include_directories('sysdeps/menix/include')
- 	libc_include_dirs += include_directories('sysdeps/menix/include')
+@@ -286,6 +286,8 @@ elif host_machine.system() == 'menix'
+ 	internal_conf.set10('MLIBC_MMAP_ALLOCATE_DSO', true)
+ 	internal_conf.set10('MLIBC_MAP_FILE_WINDOWS', true)
  	subdir('sysdeps/menix')
 +elif host_machine.system() == 'evalynos'
 +	subdir('sysdeps/evalynos')
@@ -23,7 +13,7 @@ index eaf06d6..97fd1f8 100644
  	subdir('sysdeps/demo')
 diff --git a/sysdeps/evalynos/crt1.S b/sysdeps/evalynos/crt1.S
 new file mode 100644
-index 0000000..082b729
+index 00000000..9d95ffe6
 --- /dev/null
 +++ b/sysdeps/evalynos/crt1.S
 @@ -0,0 +1,7 @@
@@ -31,12 +21,12 @@ index 0000000..082b729
 +.global _start
 +_start:
 +    mov %rsp, %rdi
-+    mov $main, %rsi
++    lea main(%rip), %rsi
 +    call __mlibc_entry
 +.section .note.GNU-stack,"",%progbits
 diff --git a/sysdeps/evalynos/crti.S b/sysdeps/evalynos/crti.S
 new file mode 100644
-index 0000000..4b3759b
+index 00000000..4b3759bc
 --- /dev/null
 +++ b/sysdeps/evalynos/crti.S
 @@ -0,0 +1,10 @@
@@ -52,23 +42,22 @@ index 0000000..4b3759b
 +.section .note.GNU-stack,"",%progbits
 diff --git a/sysdeps/evalynos/crtn.S b/sysdeps/evalynos/crtn.S
 new file mode 100644
-index 0000000..4b3759b
+index 00000000..89d1536c
 --- /dev/null
 +++ b/sysdeps/evalynos/crtn.S
-@@ -0,0 +1,10 @@
+@@ -0,0 +1,9 @@
 +.section .init
-+.global _init
-+_init:
-+    push %rax
++    pop %rax
++    ret
 +
 +.section .fini
-+.global _fini
-+_fini:
-+    push %rax
++    pop %rax
++    ret
++
 +.section .note.GNU-stack,"",%progbits
 diff --git a/sysdeps/evalynos/entry.cpp b/sysdeps/evalynos/entry.cpp
 new file mode 100644
-index 0000000..996565b
+index 00000000..996565bc
 --- /dev/null
 +++ b/sysdeps/evalynos/entry.cpp
 @@ -0,0 +1,15 @@
@@ -89,7 +78,7 @@ index 0000000..996565b
 +}
 diff --git a/sysdeps/evalynos/include/abi-bits/access.h b/sysdeps/evalynos/include/abi-bits/access.h
 new file mode 120000
-index 0000000..cb83931
+index 00000000..cb839316
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/access.h
 @@ -0,0 +1 @@
@@ -97,7 +86,7 @@ index 0000000..cb83931
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/auxv.h b/sysdeps/evalynos/include/abi-bits/auxv.h
 new file mode 120000
-index 0000000..c43f878
+index 00000000..c43f8786
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/auxv.h
 @@ -0,0 +1 @@
@@ -105,7 +94,7 @@ index 0000000..c43f878
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/blkcnt_t.h b/sysdeps/evalynos/include/abi-bits/blkcnt_t.h
 new file mode 120000
-index 0000000..0b0ec27
+index 00000000..0b0ec270
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/blkcnt_t.h
 @@ -0,0 +1 @@
@@ -113,7 +102,7 @@ index 0000000..0b0ec27
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/blksize_t.h b/sysdeps/evalynos/include/abi-bits/blksize_t.h
 new file mode 120000
-index 0000000..7dc8d7c
+index 00000000..7dc8d7cf
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/blksize_t.h
 @@ -0,0 +1 @@
@@ -121,7 +110,7 @@ index 0000000..7dc8d7c
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/clockid_t.h b/sysdeps/evalynos/include/abi-bits/clockid_t.h
 new file mode 120000
-index 0000000..6a42da5
+index 00000000..6a42da56
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/clockid_t.h
 @@ -0,0 +1 @@
@@ -129,15 +118,23 @@ index 0000000..6a42da5
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/dev_t.h b/sysdeps/evalynos/include/abi-bits/dev_t.h
 new file mode 120000
-index 0000000..bca881e
+index 00000000..bca881e9
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/dev_t.h
 @@ -0,0 +1 @@
 +../../../../abis/linux/dev_t.h
 \ No newline at end of file
+diff --git a/sysdeps/evalynos/include/abi-bits/epoll.h b/sysdeps/evalynos/include/abi-bits/epoll.h
+new file mode 120000
+index 00000000..eb4b76dc
+--- /dev/null
++++ b/sysdeps/evalynos/include/abi-bits/epoll.h
+@@ -0,0 +1 @@
++../../../../abis/linux/epoll.h
+\ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/errno.h b/sysdeps/evalynos/include/abi-bits/errno.h
 new file mode 120000
-index 0000000..6e507de
+index 00000000..6e507def
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/errno.h
 @@ -0,0 +1 @@
@@ -145,7 +142,7 @@ index 0000000..6e507de
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/fcntl.h b/sysdeps/evalynos/include/abi-bits/fcntl.h
 new file mode 120000
-index 0000000..463e2c9
+index 00000000..463e2c95
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/fcntl.h
 @@ -0,0 +1 @@
@@ -153,7 +150,7 @@ index 0000000..463e2c9
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/fd_set.h b/sysdeps/evalynos/include/abi-bits/fd_set.h
 new file mode 120000
-index 0000000..b43142c
+index 00000000..b43142c4
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/fd_set.h
 @@ -0,0 +1 @@
@@ -161,7 +158,7 @@ index 0000000..b43142c
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/fsblkcnt_t.h b/sysdeps/evalynos/include/abi-bits/fsblkcnt_t.h
 new file mode 120000
-index 0000000..898dfb2
+index 00000000..898dfb2f
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/fsblkcnt_t.h
 @@ -0,0 +1 @@
@@ -169,7 +166,7 @@ index 0000000..898dfb2
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/fsfilcnt_t.h b/sysdeps/evalynos/include/abi-bits/fsfilcnt_t.h
 new file mode 120000
-index 0000000..791755c
+index 00000000..791755c9
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/fsfilcnt_t.h
 @@ -0,0 +1 @@
@@ -177,7 +174,7 @@ index 0000000..791755c
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/gid_t.h b/sysdeps/evalynos/include/abi-bits/gid_t.h
 new file mode 120000
-index 0000000..abce6d6
+index 00000000..abce6d69
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/gid_t.h
 @@ -0,0 +1 @@
@@ -185,7 +182,7 @@ index 0000000..abce6d6
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/in.h b/sysdeps/evalynos/include/abi-bits/in.h
 new file mode 120000
-index 0000000..418d1d5
+index 00000000..418d1d5c
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/in.h
 @@ -0,0 +1 @@
@@ -193,15 +190,31 @@ index 0000000..418d1d5
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/ino_t.h b/sysdeps/evalynos/include/abi-bits/ino_t.h
 new file mode 120000
-index 0000000..4c20aca
+index 00000000..4c20aca2
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/ino_t.h
 @@ -0,0 +1 @@
 +../../../../abis/linux/ino_t.h
 \ No newline at end of file
+diff --git a/sysdeps/evalynos/include/abi-bits/inotify.h b/sysdeps/evalynos/include/abi-bits/inotify.h
+new file mode 120000
+index 00000000..b5cb2823
+--- /dev/null
++++ b/sysdeps/evalynos/include/abi-bits/inotify.h
+@@ -0,0 +1 @@
++../../../../abis/linux/inotify.h
+\ No newline at end of file
+diff --git a/sysdeps/evalynos/include/abi-bits/ioctls.h b/sysdeps/evalynos/include/abi-bits/ioctls.h
+new file mode 120000
+index 00000000..595106b6
+--- /dev/null
++++ b/sysdeps/evalynos/include/abi-bits/ioctls.h
+@@ -0,0 +1 @@
++../../../../abis/linux/ioctls.h
+\ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/ipc.h b/sysdeps/evalynos/include/abi-bits/ipc.h
 new file mode 120000
-index 0000000..2c7ffc4
+index 00000000..2c7ffc4c
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/ipc.h
 @@ -0,0 +1 @@
@@ -209,7 +222,7 @@ index 0000000..2c7ffc4
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/limits.h b/sysdeps/evalynos/include/abi-bits/limits.h
 new file mode 120000
-index 0000000..6c88db2
+index 00000000..6c88db2e
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/limits.h
 @@ -0,0 +1 @@
@@ -217,7 +230,7 @@ index 0000000..6c88db2
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/mode_t.h b/sysdeps/evalynos/include/abi-bits/mode_t.h
 new file mode 120000
-index 0000000..5d78fdf
+index 00000000..5d78fdfc
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/mode_t.h
 @@ -0,0 +1 @@
@@ -225,7 +238,7 @@ index 0000000..5d78fdf
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/mqueue.h b/sysdeps/evalynos/include/abi-bits/mqueue.h
 new file mode 120000
-index 0000000..fa87b07
+index 00000000..fa87b078
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/mqueue.h
 @@ -0,0 +1 @@
@@ -233,7 +246,7 @@ index 0000000..fa87b07
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/msg.h b/sysdeps/evalynos/include/abi-bits/msg.h
 new file mode 120000
-index 0000000..f402b49
+index 00000000..f402b493
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/msg.h
 @@ -0,0 +1 @@
@@ -241,15 +254,23 @@ index 0000000..f402b49
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/nlink_t.h b/sysdeps/evalynos/include/abi-bits/nlink_t.h
 new file mode 120000
-index 0000000..bb3b625
+index 00000000..bb3b625c
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/nlink_t.h
 @@ -0,0 +1 @@
 +../../../../abis/linux/nlink_t.h
 \ No newline at end of file
+diff --git a/sysdeps/evalynos/include/abi-bits/packet.h b/sysdeps/evalynos/include/abi-bits/packet.h
+new file mode 120000
+index 00000000..998ef1ab
+--- /dev/null
++++ b/sysdeps/evalynos/include/abi-bits/packet.h
+@@ -0,0 +1 @@
++../../../../abis/linux/packet.h
+\ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/pid_t.h b/sysdeps/evalynos/include/abi-bits/pid_t.h
 new file mode 120000
-index 0000000..baa90f6
+index 00000000..baa90f6a
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/pid_t.h
 @@ -0,0 +1 @@
@@ -257,15 +278,39 @@ index 0000000..baa90f6
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/poll.h b/sysdeps/evalynos/include/abi-bits/poll.h
 new file mode 120000
-index 0000000..8ea6a0a
+index 00000000..8ea6a0a3
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/poll.h
 @@ -0,0 +1 @@
 +../../../../abis/linux/poll.h
 \ No newline at end of file
+diff --git a/sysdeps/evalynos/include/abi-bits/ptrace.h b/sysdeps/evalynos/include/abi-bits/ptrace.h
+new file mode 120000
+index 00000000..b2517b2c
+--- /dev/null
++++ b/sysdeps/evalynos/include/abi-bits/ptrace.h
+@@ -0,0 +1 @@
++../../../../abis/linux/ptrace.h
+\ No newline at end of file
+diff --git a/sysdeps/evalynos/include/abi-bits/random.h b/sysdeps/evalynos/include/abi-bits/random.h
+new file mode 120000
+index 00000000..83fc3d96
+--- /dev/null
++++ b/sysdeps/evalynos/include/abi-bits/random.h
+@@ -0,0 +1 @@
++../../../../abis/linux/random.h
+\ No newline at end of file
+diff --git a/sysdeps/evalynos/include/abi-bits/reboot.h b/sysdeps/evalynos/include/abi-bits/reboot.h
+new file mode 120000
+index 00000000..77013a41
+--- /dev/null
++++ b/sysdeps/evalynos/include/abi-bits/reboot.h
+@@ -0,0 +1 @@
++../../../../abis/linux/reboot.h
+\ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/resource.h b/sysdeps/evalynos/include/abi-bits/resource.h
 new file mode 120000
-index 0000000..88d7402
+index 00000000..88d74025
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/resource.h
 @@ -0,0 +1 @@
@@ -273,7 +318,7 @@ index 0000000..88d7402
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/riscv-hwprobe.h b/sysdeps/evalynos/include/abi-bits/riscv-hwprobe.h
 new file mode 120000
-index 0000000..e651325
+index 00000000..e6513250
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/riscv-hwprobe.h
 @@ -0,0 +1 @@
@@ -281,15 +326,23 @@ index 0000000..e651325
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/rlim_t.h b/sysdeps/evalynos/include/abi-bits/rlim_t.h
 new file mode 120000
-index 0000000..e92eb5f
+index 00000000..e92eb5fb
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/rlim_t.h
 @@ -0,0 +1 @@
 +../../../../abis/linux/rlim_t.h
 \ No newline at end of file
+diff --git a/sysdeps/evalynos/include/abi-bits/route.h b/sysdeps/evalynos/include/abi-bits/route.h
+new file mode 120000
+index 00000000..313ead67
+--- /dev/null
++++ b/sysdeps/evalynos/include/abi-bits/route.h
+@@ -0,0 +1 @@
++../../../../abis/linux/route.h
+\ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/sa_family_t.h b/sysdeps/evalynos/include/abi-bits/sa_family_t.h
 new file mode 120000
-index 0000000..a75e229
+index 00000000..a75e2296
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/sa_family_t.h
 @@ -0,0 +1 @@
@@ -297,7 +350,7 @@ index 0000000..a75e229
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/seek-whence.h b/sysdeps/evalynos/include/abi-bits/seek-whence.h
 new file mode 120000
-index 0000000..df7bccf
+index 00000000..df7bccf0
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/seek-whence.h
 @@ -0,0 +1 @@
@@ -305,7 +358,7 @@ index 0000000..df7bccf
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/sem.h b/sysdeps/evalynos/include/abi-bits/sem.h
 new file mode 120000
-index 0000000..699d7af
+index 00000000..699d7afa
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/sem.h
 @@ -0,0 +1 @@
@@ -313,7 +366,7 @@ index 0000000..699d7af
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/shm.h b/sysdeps/evalynos/include/abi-bits/shm.h
 new file mode 120000
-index 0000000..067d8c4
+index 00000000..067d8c4f
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/shm.h
 @@ -0,0 +1 @@
@@ -321,7 +374,7 @@ index 0000000..067d8c4
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/sig-limits.h b/sysdeps/evalynos/include/abi-bits/sig-limits.h
 new file mode 120000
-index 0000000..f829738
+index 00000000..f829738e
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/sig-limits.h
 @@ -0,0 +1 @@
@@ -329,7 +382,7 @@ index 0000000..f829738
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/sigevent.h b/sysdeps/evalynos/include/abi-bits/sigevent.h
 new file mode 120000
-index 0000000..83d069b
+index 00000000..83d069b5
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/sigevent.h
 @@ -0,0 +1 @@
@@ -337,7 +390,7 @@ index 0000000..83d069b
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/signal.h b/sysdeps/evalynos/include/abi-bits/signal.h
 new file mode 120000
-index 0000000..4dcb0b7
+index 00000000..4dcb0b7c
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/signal.h
 @@ -0,0 +1 @@
@@ -345,7 +398,7 @@ index 0000000..4dcb0b7
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/sigset_t.h b/sysdeps/evalynos/include/abi-bits/sigset_t.h
 new file mode 120000
-index 0000000..8b8e81e
+index 00000000..8b8e81e8
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/sigset_t.h
 @@ -0,0 +1 @@
@@ -353,7 +406,7 @@ index 0000000..8b8e81e
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/sigval.h b/sysdeps/evalynos/include/abi-bits/sigval.h
 new file mode 120000
-index 0000000..ccd43a5
+index 00000000..ccd43a55
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/sigval.h
 @@ -0,0 +1 @@
@@ -361,7 +414,7 @@ index 0000000..ccd43a5
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/sockaddr_storage.h b/sysdeps/evalynos/include/abi-bits/sockaddr_storage.h
 new file mode 120000
-index 0000000..b374865
+index 00000000..b3748654
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/sockaddr_storage.h
 @@ -0,0 +1 @@
@@ -369,7 +422,7 @@ index 0000000..b374865
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/socket.h b/sysdeps/evalynos/include/abi-bits/socket.h
 new file mode 120000
-index 0000000..f1dc016
+index 00000000..f1dc016e
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/socket.h
 @@ -0,0 +1 @@
@@ -377,7 +430,7 @@ index 0000000..f1dc016
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/socklen_t.h b/sysdeps/evalynos/include/abi-bits/socklen_t.h
 new file mode 120000
-index 0000000..41f3b11
+index 00000000..41f3b11f
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/socklen_t.h
 @@ -0,0 +1 @@
@@ -385,23 +438,39 @@ index 0000000..41f3b11
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/stat.h b/sysdeps/evalynos/include/abi-bits/stat.h
 new file mode 120000
-index 0000000..1f63b41
+index 00000000..1f63b41f
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/stat.h
 @@ -0,0 +1 @@
 +../../../../abis/linux/stat.h
 \ No newline at end of file
+diff --git a/sysdeps/evalynos/include/abi-bits/statfs.h b/sysdeps/evalynos/include/abi-bits/statfs.h
+new file mode 120000
+index 00000000..e3d202f5
+--- /dev/null
++++ b/sysdeps/evalynos/include/abi-bits/statfs.h
+@@ -0,0 +1 @@
++../../../../abis/linux/statfs.h
+\ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/statvfs.h b/sysdeps/evalynos/include/abi-bits/statvfs.h
 new file mode 120000
-index 0000000..1fc80c2
+index 00000000..1fc80c2a
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/statvfs.h
 @@ -0,0 +1 @@
 +../../../../abis/linux/statvfs.h
 \ No newline at end of file
+diff --git a/sysdeps/evalynos/include/abi-bits/statx.h b/sysdeps/evalynos/include/abi-bits/statx.h
+new file mode 120000
+index 00000000..8702a1d0
+--- /dev/null
++++ b/sysdeps/evalynos/include/abi-bits/statx.h
+@@ -0,0 +1 @@
++../../../../abis/linux/statx.h
+\ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/suseconds_t.h b/sysdeps/evalynos/include/abi-bits/suseconds_t.h
 new file mode 120000
-index 0000000..9ed6597
+index 00000000..9ed65977
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/suseconds_t.h
 @@ -0,0 +1 @@
@@ -409,7 +478,7 @@ index 0000000..9ed6597
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/termios.h b/sysdeps/evalynos/include/abi-bits/termios.h
 new file mode 120000
-index 0000000..ee8f0b0
+index 00000000..ee8f0b09
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/termios.h
 @@ -0,0 +1 @@
@@ -417,7 +486,7 @@ index 0000000..ee8f0b0
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/time.h b/sysdeps/evalynos/include/abi-bits/time.h
 new file mode 120000
-index 0000000..2a02625
+index 00000000..2a026257
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/time.h
 @@ -0,0 +1 @@
@@ -425,7 +494,7 @@ index 0000000..2a02625
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/uid_t.h b/sysdeps/evalynos/include/abi-bits/uid_t.h
 new file mode 120000
-index 0000000..b306777
+index 00000000..b3067778
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/uid_t.h
 @@ -0,0 +1 @@
@@ -433,7 +502,7 @@ index 0000000..b306777
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/utmp-defines.h b/sysdeps/evalynos/include/abi-bits/utmp-defines.h
 new file mode 120000
-index 0000000..8617643
+index 00000000..86176435
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/utmp-defines.h
 @@ -0,0 +1 @@
@@ -441,7 +510,7 @@ index 0000000..8617643
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/utmpx.h b/sysdeps/evalynos/include/abi-bits/utmpx.h
 new file mode 120000
-index 0000000..c6a2677
+index 00000000..c6a26774
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/utmpx.h
 @@ -0,0 +1 @@
@@ -449,7 +518,7 @@ index 0000000..c6a2677
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/utsname.h b/sysdeps/evalynos/include/abi-bits/utsname.h
 new file mode 120000
-index 0000000..b285754
+index 00000000..b2857547
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/utsname.h
 @@ -0,0 +1 @@
@@ -457,81 +526,146 @@ index 0000000..b285754
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/vm-flags.h b/sysdeps/evalynos/include/abi-bits/vm-flags.h
 new file mode 120000
-index 0000000..bbe258c
+index 00000000..bbe258cf
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/vm-flags.h
 @@ -0,0 +1 @@
 +../../../../abis/linux/vm-flags.h
 \ No newline at end of file
+diff --git a/sysdeps/evalynos/include/abi-bits/vt.h b/sysdeps/evalynos/include/abi-bits/vt.h
+new file mode 120000
+index 00000000..5798a4ac
+--- /dev/null
++++ b/sysdeps/evalynos/include/abi-bits/vt.h
+@@ -0,0 +1 @@
++../../../../abis/linux/vt.h
+\ No newline at end of file
 diff --git a/sysdeps/evalynos/include/abi-bits/wait.h b/sysdeps/evalynos/include/abi-bits/wait.h
 new file mode 120000
-index 0000000..feb2840
+index 00000000..feb2840c
 --- /dev/null
 +++ b/sysdeps/evalynos/include/abi-bits/wait.h
 @@ -0,0 +1 @@
 +../../../../abis/linux/wait.h
 \ No newline at end of file
+diff --git a/sysdeps/evalynos/include/abi-bits/xattr.h b/sysdeps/evalynos/include/abi-bits/xattr.h
+new file mode 120000
+index 00000000..66412d70
+--- /dev/null
++++ b/sysdeps/evalynos/include/abi-bits/xattr.h
+@@ -0,0 +1 @@
++../../../../abis/linux/xattr.h
+\ No newline at end of file
+diff --git a/sysdeps/evalynos/include/mlibc/sysdeps.hpp b/sysdeps/evalynos/include/mlibc/sysdeps.hpp
+new file mode 100644
+index 00000000..bb8d012d
+--- /dev/null
++++ b/sysdeps/evalynos/include/mlibc/sysdeps.hpp
+@@ -0,0 +1,30 @@
++#pragma once
++
++#include <mlibc/sysdep-signatures.hpp>
++
++namespace mlibc {
++
++struct EvalynosSysdepTags : LibcPanic,
++                            LibcLog,
++                            Isatty,
++                            Write,
++                            TcbSet,
++                            AnonAllocate,
++                            AnonFree,
++                            Seek,
++                            Exit,
++                            Close,
++                            FutexWake,
++                            FutexWait,
++                            Read,
++                            Open,
++                            VmMap,
++                            VmUnmap,
++                            ClockGet,
++                            Dup2,
++                            Mkdir{};
++
++template <typename Tag>
++using Sysdeps = SysdepOf<EvalynosSysdepTags, Tag>;
++
++} // namespace mlibc
 diff --git a/sysdeps/evalynos/meson.build b/sysdeps/evalynos/meson.build
 new file mode 100644
-index 0000000..f48c5b7
+index 00000000..1fcd36a5
 --- /dev/null
 +++ b/sysdeps/evalynos/meson.build
-@@ -0,0 +1,108 @@
+@@ -0,0 +1,121 @@
 +sysdep_supported_options = {
 +    'posix': true,
++    'glibc': true,
++    'bsd': true,
 +}
 +
 +if not no_headers
 +    install_headers(
-+        'include/abi-bits/auxv.h',
-+        'include/abi-bits/auxv.h',
-+        'include/abi-bits/blkcnt_t.h',
-+        'include/abi-bits/blksize_t.h',
-+        'include/abi-bits/clockid_t.h',
-+        'include/abi-bits/dev_t.h',
-+        'include/abi-bits/errno.h',
-+        'include/abi-bits/fcntl.h',
 +        'include/abi-bits/gid_t.h',
-+        'include/abi-bits/ino_t.h',
-+        'include/abi-bits/limits.h',
-+        'include/abi-bits/mode_t.h',
-+        'include/abi-bits/nlink_t.h',
-+        'include/abi-bits/pid_t.h',
-+        'include/abi-bits/seek-whence.h',
-+        'include/abi-bits/signal.h',
-+        'include/abi-bits/stat.h',
-+        'include/abi-bits/uid_t.h',
-+        'include/abi-bits/vm-flags.h',
-+        'include/abi-bits/wait.h',
-+        'include/abi-bits/riscv-hwprobe.h',
-+        'include/abi-bits/sigevent.h',
-+        'include/abi-bits/sigval.h',
-+        'include/abi-bits/sa_family_t.h',
-+        'include/abi-bits/sockaddr_storage.h',
-+        'include/abi-bits/sig-limits.h',
-+        'include/abi-bits/suseconds_t.h',
-+        'include/abi-bits/access.h',
-+        'include/abi-bits/socklen_t.h',
-+        'include/abi-bits/socket.h',
-+        'include/abi-bits/poll.h',
-+        'include/abi-bits/resource.h',
-+        'include/abi-bits/in.h',
-+        'include/abi-bits/rlim_t.h',
-+        'include/abi-bits/utsname.h',
-+        'include/abi-bits/fd_set.h',
 +        'include/abi-bits/sem.h',
-+        'include/abi-bits/time.h',
-+        'include/abi-bits/ipc.h',
-+        'include/abi-bits/statvfs.h',
-+        'include/abi-bits/fsblkcnt_t.h',
-+        'include/abi-bits/fsfilcnt_t.h',
-+        'include/abi-bits/shm.h',
-+        'include/abi-bits/termios.h',
-+        'include/abi-bits/msg.h',
 +        'include/abi-bits/mqueue.h',
++        'include/abi-bits/epoll.h',
++        'include/abi-bits/sigval.h',
++        'include/abi-bits/seek-whence.h',
++        'include/abi-bits/fsblkcnt_t.h',
++        'include/abi-bits/vt.h',
++        'include/abi-bits/blkcnt_t.h',
++        'include/abi-bits/errno.h',
++        'include/abi-bits/riscv-hwprobe.h',
++        'include/abi-bits/statx.h',
++        'include/abi-bits/in.h',
++        'include/abi-bits/ptrace.h',
++        'include/abi-bits/statvfs.h',
++        'include/abi-bits/dev_t.h',
++        'include/abi-bits/suseconds_t.h',
++        'include/abi-bits/sigset_t.h',
++        'include/abi-bits/sigevent.h',
++        'include/abi-bits/wait.h',
++        'include/abi-bits/socklen_t.h',
++        'include/abi-bits/sig-limits.h',
++        'include/abi-bits/resource.h',
++        'include/abi-bits/fd_set.h',
++        'include/abi-bits/rlim_t.h',
++        'include/abi-bits/random.h',
++        'include/abi-bits/vm-flags.h',
++        'include/abi-bits/clockid_t.h',
++        'include/abi-bits/limits.h',
++        'include/abi-bits/uid_t.h',
++        'include/abi-bits/blksize_t.h',
++        'include/abi-bits/sockaddr_storage.h',
++        'include/abi-bits/auxv.h',
++        'include/abi-bits/sa_family_t.h',
 +        'include/abi-bits/utmp-defines.h',
 +        'include/abi-bits/utmpx.h',
-+        'include/abi-bits/sigset_t.h',
++        'include/abi-bits/nlink_t.h',
++        'include/abi-bits/access.h',
++        'include/abi-bits/xattr.h',
++        'include/abi-bits/reboot.h',
++        'include/abi-bits/fcntl.h',
++        'include/abi-bits/statfs.h',
++        'include/abi-bits/utsname.h',
++        'include/abi-bits/route.h',
++        'include/abi-bits/poll.h',
++        'include/abi-bits/ino_t.h',
++        'include/abi-bits/socket.h',
++        'include/abi-bits/time.h',
++        'include/abi-bits/pid_t.h',
++        'include/abi-bits/shm.h',
++        'include/abi-bits/inotify.h',
++        'include/abi-bits/packet.h',
++        'include/abi-bits/stat.h',
++        'include/abi-bits/ioctls.h',
++        'include/abi-bits/msg.h',
++        'include/abi-bits/signal.h',
++        'include/abi-bits/termios.h',
++        'include/abi-bits/mode_t.h',
++        'include/abi-bits/fsfilcnt_t.h',
++        'include/abi-bits/ipc.h',
 +        subdir: 'abi-bits',
 +        follow_symlinks: true
 +    )
@@ -587,13 +721,13 @@ index 0000000..f48c5b7
 +libc_include_dirs += include_directories('include')
 diff --git a/sysdeps/evalynos/sysdeps.cpp b/sysdeps/evalynos/sysdeps.cpp
 new file mode 100644
-index 0000000..0ce4c35
+index 00000000..872f0462
 --- /dev/null
 +++ b/sysdeps/evalynos/sysdeps.cpp
-@@ -0,0 +1,201 @@
+@@ -0,0 +1,218 @@
++#include "mlibc/tcb.hpp"
 +#include <abi-bits/errno.h>
 +#include <bits/ensure.h>
-+#include <cstdint>
 +#include <mlibc/all-sysdeps.hpp>
 +#include <string.h>
 +
@@ -676,37 +810,40 @@ index 0000000..0ce4c35
 +    syscall1(SYS_SET_FSBASE, fsbase);
 +}
 +
-+#define STUB()                                                                 \
-+({                                                                             \
-+    __ensure(!"STUB function was called");                                     \
-+    __builtin_unreachable();                                                   \
++// ANCHOR: stub
++#define STUB()                                                                                 \
++({                                                                                             \
++    __ensure(!"STUB function was called");                                                     \
++    __builtin_unreachable();                                                                   \
 +})
++// ANCHOR_END: stub
 +
 +namespace mlibc {
 +
-+    void sys_libc_panic() {
-+        sys_libc_log("!!! mlibc panic !!!\n");
-+        sys_exit(-1);
++    [[noreturn]] void Sysdeps<LibcPanic>::operator()() {
++        sysdep<LibcLog>("!!! mlibc panic !!!");
++        sysdep<Exit>(-1);
 +        __builtin_trap();
 +    }
 +
-+    void sys_libc_log(const char *msg) {
++    void Sysdeps<LibcLog>::operator()(const char *msg) {
 +        syscall_print(msg);
++        syscall_print("\n");
 +    }
 +
-+    int sys_isatty(int fd) {
++    int Sysdeps<Isatty>::operator()(int fd) {
 +        if (fd == 0 || fd == 1 || fd == 2) {
 +            return 0;
 +        }
 +        return ENOTTY;
 +    }
 +
-+    int sys_tcb_set(void *pointer) {
++    int Sysdeps<TcbSet>::operator()(void* pointer) {
 +        syscall_write_fsbase((uint64_t)pointer);
 +        return 0;
 +    }
 +
-+    int sys_anon_allocate(size_t size, void **pointer) {
++    int Sysdeps<AnonAllocate>::operator()(size_t size, void **pointer) {
 +        uint64_t out = syscall1(SYS_MMAP, size);
 +
 +        if (out == 0)
@@ -716,9 +853,35 @@ index 0000000..0ce4c35
 +        return 0;
 +    }
 +
-+    int sys_anon_free(void *, unsigned long) { return 0; }
++    int Sysdeps<AnonFree>::operator()(void *, unsigned long) {
++        return 0;
++    }
 +
-+    int sys_open(const char *path, int flags, unsigned int mode, int *fd) {
++    int Sysdeps<Write>::operator()(int fd, const void *buf, size_t size, ssize_t *bytes_written) {
++        if (fd == 0 || fd == 1 || fd == 2) {
++            syscall_print((char*)buf);
++            *bytes_written = size;
++            return 0;
++        }
++        return EROFS;
++    }
++
++    int Sysdeps<Read>::operator()(int fd, void *buf, size_t count, ssize_t *bytes_read) {
++        if (fd == 0 || fd == 1 || fd == 2) {
++            return EINVAL;
++        }
++
++        int ret = syscall3(SYS_READ, fd, count, (uint64_t)buf);
++        if (ret < 0) {
++            *bytes_read = -1;
++            return -ret;
++        }
++
++        *bytes_read = (ssize_t)ret;
++        return 0;
++    }
++
++    int Sysdeps<Open>::operator()(const char *path, int flags, mode_t mode, int *fd) {
 +        (void)flags;
 +        (void)mode;
 +        int fdm = syscall1(SYS_OPEN, (uint64_t)path);
@@ -731,22 +894,7 @@ index 0000000..0ce4c35
 +        return EACCES;
 +    }
 +
-+    int sys_read(int fd, void *buffer, size_t count, ssize_t *bytes_read) {
-+        if (fd == 0 || fd == 1 || fd == 2) {
-+            return EINVAL;
-+        }
-+
-+        int ret = syscall3(SYS_READ, fd, count, (uint64_t)buffer);
-+        if (ret < 0) {
-+            *bytes_read = -1;
-+            return -ret;
-+        }
-+
-+        *bytes_read = (ssize_t)ret;
-+        return 0;
-+    }
-+
-+    int sys_seek(int fd, off_t offset, int whence, off_t *new_offset) {
++    int Sysdeps<Seek>::operator()(int fd, off_t offset, int whence, off_t *new_offset) {
 +        if (fd >= 0 && fd <= 2) {
 +            return ESPIPE;
 +        }
@@ -763,32 +911,35 @@ index 0000000..0ce4c35
 +        return 0;
 +    }
 +
-+    int sys_write(int fd, void const *buf, size_t size, ssize_t *ret) {
-+        if (fd == 0 || fd == 1 || fd == 2) {
-+            syscall_print((char *)buf);
-+            *ret = size;
-+            return 0;
-+        }
-+        return EROFS;
++    void Sysdeps<Exit>::operator()(int status) {
++        syscall1(SYS_EXIT, status);
++        __builtin_unreachable();
 +    }
 +
-+    int sys_close(int ) {
++    int Sysdeps<Close>::operator()(int) {
 +        return 0;
 +    }
 +
-+    int sys_mkdir(const char *, mode_t ) {
-+        return -1;
++    int Sysdeps<FutexWake>::operator()(int *, bool) {
++        STUB();
 +    }
-+
-+    int sys_futex_wake(int *) { STUB(); }
-+    int sys_futex_wait(int *, int, timespec const *) { STUB(); }
-+    int sys_vm_map(void *, size_t , int , int , int , off_t , void **) { STUB(); }
-+    int sys_vm_unmap(void *, size_t) { STUB(); }
-+    int sys_clock_get(int , time_t *, long *) { STUB(); }
-+
-+    void sys_exit(int status) {
-+        syscall1(SYS_EXIT, status);
-+        __builtin_unreachable();
++    int Sysdeps<FutexWait>::operator()(int *, int, timespec const *) {
++        STUB();
++    }
++    int Sysdeps<VmMap>::operator()(void *, size_t, int, int, int, off_t, void **) {
++        STUB();
++    }
++    int Sysdeps<VmUnmap>::operator()(void *, size_t) {
++        STUB();
++    }
++    int Sysdeps<ClockGet>::operator()(int, time_t *, long *) {
++        STUB();
++    }
++    int Sysdeps<Dup2>::operator()(int fd, int flags, int newfd) {
++        STUB();
++    }
++    int Sysdeps<Mkdir>::operator()(const char *path, mode_t mode) {
++        return EROFS;
 +    }
 +
 +} // namespace mlibc

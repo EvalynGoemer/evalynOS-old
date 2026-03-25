@@ -2,7 +2,7 @@
 
 name=mlibc-headers
 version=0.0git
-revision=0
+revision=1
 from_source=mlibc
 
 configure() {

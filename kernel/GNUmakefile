@@ -1,7 +1,7 @@
 # This file was taken and modified from https://codeberg.org/Limine/limine-c-template/raw/commit/c8bc5a2b93397a19272a19a6004b0eeb1e90d982/kernel/GNUmakefile
 
 ARCH := x86_64
-CFLAGS := -O2 -g -gdwarf-4 -fno-omit-frame-pointer -DMUTE_KERNEL_PANIC
+CFLAGS := -O2 -g -fno-omit-frame-pointer -DMUTE_KERNEL_PANIC
 CPPFLAGS :=
 
 .SUFFIXES:

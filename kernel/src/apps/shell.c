@@ -22,43 +22,50 @@
 #include "drivers/timer.h"
 
 void spawn_app_kthread(char* path) {
-    valloc(get_current_thread()->pagemap, 64 * 1024, 0x80000000);
-    uintptr_t stack_top = 0x80000000;
-    size_t stack_size = 64 * 1024;
+    void* elf_file = malloc(16 * 1024 * 1024);
+    fs_read(path, elf_file, 16 * 1024 * 1024);
+    struct elf_info info = load_elf(elf_file, get_current_thread()->pagemap);
+    free(elf_file);
+    free(path);
 
-    for (size_t i = stack_top; i > stack_top - stack_size; i -= PAGE_SIZE) {
+    size_t stack_size = 64 * 1024;
+    uintptr_t stack_top = valloc(get_current_thread()->pagemap, stack_size);
+    stack_top += stack_size;
+
+    for (size_t offset = 0; offset < stack_size; offset += PAGE_SIZE) {
+        uintptr_t va = stack_top - PAGE_SIZE - offset;
         uintptr_t pa = (uintptr_t)allocate_page();
-        vmm_map_page(get_current_thread()->pagemap, i, pa, PTE_PRESENT | PTE_USER | PTE_WRITABLE);
+        vmm_map_page(get_current_thread()->pagemap, va, pa, PTE_PRESENT | PTE_USER | PTE_WRITABLE);
     }
 
-    uint64_t *stack = (uint64_t *)stack_top;
-
+    uintptr_t sp = stack_top & ~0xF;
+    uint64_t *stack = (uint64_t *)sp;
     rflags_set_ac();
     *--stack = 0; // alignment
+    *--stack = 0; // AT_NULL value
+    *--stack = 0; // AT_NULL type
+    *--stack = info.entry_point;
+    *--stack = 9; // AT_ENTRY
+    *--stack = info.phdr;
+    *--stack = 3; // AT_PHDR
+    *--stack = info.phentsize;
+    *--stack = 4; // AT_PHENT
+    *--stack = info.phnum;
+    *--stack = 5; // AT_PHNUM
     *--stack = 0; // envp
     *--stack = 0; // argv
     *--stack = 0; // argc
     rflags_clr_ac();
-
     stack_top = (uintptr_t)stack;
 
-    void* elf_file = malloc(16 * 1024 * 1024);
-    fs_read(path, elf_file, 16 * 1024 * 1024);
-
-    uint64_t start_addr = load_elf(elf_file, get_current_thread()->pagemap);
-
-    free(elf_file);
-    free(path);
-
-    if (start_addr != 0) {
+    if (info.entry_point != 0) {
         if (fred_enbled) {
-            fred_switch_to_user(start_addr, stack_top);
+            fred_switch_to_user(info.entry_point, stack_top);
         } else {
-            switch_to_user(start_addr, stack_top);
+            switch_to_user(info.entry_point, stack_top);
         }
     }
 }
-
 __attribute__((noinline))
 void smash_stack() {
     volatile char buf[16];
