@@ -12,12 +12,15 @@ PACKAGES=(
     doomgeneric
     badapple
     helloworld
+    bash
 )
 
 cd ${JINX_DIR}
 ./jinx build     "${PACKAGES[@]}"
 ./jinx reinstall "$SRC_DIR" "${PACKAGES[@]}"
 cd ${SRC_DIR}
+strip ./usr/bin/bash
+mv ./usr/bin/bash ./bash.elf
 rm -rf ./usr
 rm -rf ./var
 cd ${ISO_DIR}

@@ -191,6 +191,13 @@ void execute_commands(const char *cmd) {
         printf("Started playing DOOM in userspace\n");
         return;
     }
+    if (strcmp("BASH", to_upper(cmd)) == 0) {
+        pagemap_t* pagemap = new_pagemap();
+        char* path = strdup("/bash.elf");
+        create_thread(spawn_app_kthread, pagemap, (args_t){(uint64_t)path,0,0,0,0,0});
+        printf("Started running BASH in userspace\n");
+        return;
+    }
     if ((strcmp("CLEAR", to_upper(cmd)) == 0) || (strcmp("CLS", to_upper(cmd)) == 0)) {
         printf("\x1b[2J\x1b[H"); // ansi for clear screen and go home
         return;

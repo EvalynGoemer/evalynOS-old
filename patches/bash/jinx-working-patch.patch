@@ -1,0 +1,40 @@
+diff --git bash-clean/support/config.sub bash-workdir/support/config.sub
+index 4aaae46..c4c8ac6 100644
+--- bash-clean/support/config.sub
++++ bash-workdir/support/config.sub
+@@ -1976,6 +1976,7 @@ case $os in
+ 	| atheos* \
+ 	| auroraux* \
+ 	| aux* \
++	| evalynos* \
+ 	| beos* \
+ 	| bitrig* \
+ 	| bme* \
+@@ -2216,6 +2217,8 @@ case $kernel-$os-$obj in
+ 		;;
+ 	managarm-mlibc*- | managarm-kernel*- )
+ 		;;
++	evalynos-mlibc*- )
++		;;
+ 	windows*-msvc*-)
+ 		;;
+ 	-dietlibc*- | -llvm*- | -mlibc*- | -musl*- | -newlib*- | -relibc*- \
+diff --git bash-clean/support/shobj-conf bash-workdir/support/shobj-conf
+index c3df351..21b723e 100755
+--- bash-clean/support/shobj-conf
++++ bash-workdir/support/shobj-conf
+@@ -79,6 +79,14 @@ nsk-cc-tandem|nsk-c99-tandem)
+ 	SHOBJ_LDFLAGS='-shared -bglobalized -unres_symbols ignore'
+ 	;;
+ 
++evalynos*-*gcc*)
++	SHOBJ_CFLAGS=-fpic
++	SHOBJ_LD=/usr/bin/ld
++	SHOBJ_LDFLAGS='-assert pure-text'
++
++	SHLIB_LIBVERSION='$(SHLIB_LIBSUFF).$(SHLIB_MAJOR)$(SHLIB_MINOR)'
++	;;
++
+ sunos4*-*gcc*)
+ 	SHOBJ_CFLAGS=-fpic
+ 	SHOBJ_LD=/usr/bin/ld

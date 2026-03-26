@@ -1,0 +1,55 @@
+#!/bin/sh
+
+name=bash
+version=5.3
+revision=0
+tarball_url="https://mirrors.ocf.berkeley.edu/gnu/bash/bash-5.3.tar.gz"
+tarball_blake2b="82d1b54322bbd1e8c2a93380f1b2888a42a1d7186e504f41cee705a0fdd41463d8f20baa1755051e1396192f8ebd089524767d933a9e0b5fb76f2588601539bb"
+source_allow_network=yes
+hostdeps="gcc"
+deps="mlibc mlibc-headers"
+
+configure() {
+    bash_cv_getcwd_malloc=y \
+    ac_cv_func_malloc_0_nonnull=yes \
+    ac_cv_func_calloc_0_nonnull=yes \
+    ac_cv_func_realloc_0_nonnull=yes \
+    ac_cv_func_getenv_works=yes \
+    ac_cv_func_setenv_works=yes \
+    ac_cv_func_unsetenv_works=yes \
+    ac_cv_func_putenv_works=yes \
+    ac_cv_func_strchrnul_works=yes \
+    CFLAGS="$TARGET_CFLAGS" \
+    CXXFLAGS="$TARGET_CXXFLAGS" \
+    LDFLAGS="$TARGET_LDFLAGS" \
+    "${source_dir}"/configure \
+        --host=${TARGET_TRIPLET} \
+        --without-curses \
+        --disable-readline \
+        --without-bash-malloc \
+        --with-sysroot=${sysroot_dir} \
+        --prefix=${prefix} \
+        --sysconfdir=/etc \
+        --localstatedir=/var \
+        --bindir=${prefix}/bin \
+        --sbindir=${prefix}/bin \
+        --libdir=${prefix}/lib \
+        --enable-static \
+        --disable-malloc0returnsnull \
+        --disable-shared
+
+    sed -i 's/\bgetenv\.o\b//g'                           lib/sh/Makefile
+    sed -i 's/\bstrchrnul\.o\b//g'                        lib/sh/Makefile
+    sed -i 's/\${LIBOBJDIR}strchrnul\$U\.o[[:space:]]*//' lib/sh/Makefile
+}
+
+build() {
+    make -j${parallelism}
+}
+
+package() {
+    make install DESTDIR="${dest_dir}"
+    mkdir -p "${dest_dir}"/usr/bin
+    ln -sf bash "${dest_dir}"/usr/bin/sh
+    ln -sf bash "${dest_dir}"/usr/bin/rbash
+}
