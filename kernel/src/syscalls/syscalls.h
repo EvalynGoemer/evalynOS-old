@@ -10,6 +10,7 @@
 #define SYSCALL_SEEK             6
 #define SYSCALL_SLEEP_MS         7
 #define SYSCALL_EXIT             8
+#define SYSCALL_STDIN            9
 #define SYSCALL_PCSPKR_PLAY      10
 #define SYSCALL_PCSPKR_STOP      11
 #define SYSCALL_GET_MS           22

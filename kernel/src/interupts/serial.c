@@ -15,8 +15,7 @@ void serial_isr(struct interrupt_frame* frame) {
             serial_buffer[serial_buffer_index] = c;
             serial_buffer_index++;
 
-            keyboard_buffer[keyboard_buffer_index] = c;
-            keyboard_buffer_index++;
+            kbdDevicePush(c);
         }
     }
 }

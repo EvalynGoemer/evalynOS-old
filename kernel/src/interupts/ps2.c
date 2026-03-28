@@ -50,11 +50,9 @@ void ps2_isr() {
             }
 
             if (shiftPressed) {
-                keyboard_buffer[keyboard_buffer_index] = asciiShift[scancode];
-                keyboard_buffer_index++;
+                kbdDevicePush(asciiShift[scancode]);
             } else {
-                keyboard_buffer[keyboard_buffer_index] = asciiNoShift[scancode];
-                keyboard_buffer_index++;
+                kbdDevicePush(asciiNoShift[scancode]);
             }
 
             if (extended == true) {

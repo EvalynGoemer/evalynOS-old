@@ -558,10 +558,10 @@ index 00000000..66412d70
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/mlibc/sysdeps.hpp b/sysdeps/evalynos/include/mlibc/sysdeps.hpp
 new file mode 100644
-index 00000000..bb8d012d
+index 00000000..17a1e45c
 --- /dev/null
 +++ b/sysdeps/evalynos/include/mlibc/sysdeps.hpp
-@@ -0,0 +1,30 @@
+@@ -0,0 +1,53 @@
 +#pragma once
 +
 +#include <mlibc/sysdep-signatures.hpp>
@@ -582,11 +582,34 @@ index 00000000..bb8d012d
 +                            FutexWait,
 +                            Read,
 +                            Open,
++                            Stat,
 +                            VmMap,
 +                            VmUnmap,
 +                            ClockGet,
++                            Dup,
 +                            Dup2,
-+                            Mkdir{};
++                            Ioctl,
++                            Mkdir,
++                            GetUid,
++                            GetEuid,
++                            GetGid,
++                            GetEgid,
++                            GetPid,
++                            GetPpid,
++                            GetPgid,
++                            SetPgid,
++                            GetResuid,
++                            GetResgid,
++                            Tcgetwinsize,
++                            GetHostname,
++                            Sigaction,
++                            Tcgetattr,
++                            Tcsetattr,
++                            Ttyname,
++                            Sigprocmask,
++                            Fcntl,
++                            Sysconf,
++                            GetCwd{};
 +
 +template <typename Tag>
 +using Sysdeps = SysdepOf<EvalynosSysdepTags, Tag>;
@@ -721,10 +744,10 @@ index 00000000..1fcd36a5
 +libc_include_dirs += include_directories('include')
 diff --git a/sysdeps/evalynos/sysdeps.cpp b/sysdeps/evalynos/sysdeps.cpp
 new file mode 100644
-index 00000000..872f0462
+index 00000000..bd3629a9
 --- /dev/null
 +++ b/sysdeps/evalynos/sysdeps.cpp
-@@ -0,0 +1,218 @@
+@@ -0,0 +1,451 @@
 +#include "mlibc/tcb.hpp"
 +#include <abi-bits/errno.h>
 +#include <bits/ensure.h>
@@ -738,7 +761,9 @@ index 00000000..872f0462
 +#define SYS_OPEN 4
 +#define SYS_READ 5
 +#define SYS_SEEK 6
++#define SYS_SLEEP_MS 7
 +#define SYS_EXIT 8
++#define SYS_STDIN 9
 +
 +uint64_t syscall1(uint64_t syscall_type, uint64_t arg1) {
 +    uint64_t ret;
@@ -858,26 +883,47 @@ index 00000000..872f0462
 +    }
 +
 +    int Sysdeps<Write>::operator()(int fd, const void *buf, size_t size, ssize_t *bytes_written) {
-+        if (fd == 0 || fd == 1 || fd == 2) {
-+            syscall_print((char*)buf);
-+            *bytes_written = size;
++        if(fd == 1 || fd == 2) {
++            const char *cbuf = (const char *)buf;
++            char tmp[2]; tmp[1] = '\0';
++            for(size_t i = 0; i < size; i++) {
++                tmp[0] = cbuf[i];
++                syscall_print(tmp);
++            }
++            if(bytes_written)
++                *bytes_written = size;
 +            return 0;
 +        }
++
 +        return EROFS;
 +    }
 +
 +    int Sysdeps<Read>::operator()(int fd, void *buf, size_t count, ssize_t *bytes_read) {
-+        if (fd == 0 || fd == 1 || fd == 2) {
++        if (!buf || !bytes_read)
++            return EFAULT;
++        if (fd == 0) {
++            if (count == 0) {
++                *bytes_read = 0;
++                return 0;
++            }
++            ssize_t n = static_cast<ssize_t>(syscall2(SYS_STDIN, reinterpret_cast<uint64_t>(buf), count));
++            *bytes_read = (n < 0) ? -1 : n;
++            return (n < 0) ? static_cast<int>(-n) : 0;
++        }
++
++        if (fd == 1 || fd == 2) {
++            *bytes_read = -1;
 +            return EINVAL;
 +        }
 +
-+        int ret = syscall3(SYS_READ, fd, count, (uint64_t)buf);
-+        if (ret < 0) {
++        ssize_t n = static_cast<ssize_t>(syscall3(SYS_READ, static_cast<uint64_t>(fd), static_cast<uint64_t>(count), reinterpret_cast<uint64_t>(buf)));
++
++        if (n < 0) {
 +            *bytes_read = -1;
-+            return -ret;
++            return -n;
 +        }
 +
-+        *bytes_read = (ssize_t)ret;
++        *bytes_read = n;
 +        return 0;
 +    }
 +
@@ -891,7 +937,8 @@ index 00000000..872f0462
 +            return 0;
 +        }
 +
-+        return EACCES;
++        *fd = -1;
++        return ENOENT;
 +    }
 +
 +    int Sysdeps<Seek>::operator()(int fd, off_t offset, int whence, off_t *new_offset) {
@@ -932,14 +979,223 @@ index 00000000..872f0462
 +    int Sysdeps<VmUnmap>::operator()(void *, size_t) {
 +        STUB();
 +    }
-+    int Sysdeps<ClockGet>::operator()(int, time_t *, long *) {
-+        STUB();
++    int Sysdeps<Dup>::operator()(int fd, int flags, int *newfd) {
++        return ENOSYS;
 +    }
 +    int Sysdeps<Dup2>::operator()(int fd, int flags, int newfd) {
-+        STUB();
++        return ENOSYS;
 +    }
 +    int Sysdeps<Mkdir>::operator()(const char *path, mode_t mode) {
 +        return EROFS;
++    }
++
++    pid_t Sysdeps<GetPid>::operator()() {
++        return syscall1(SYS_GET_THREAD_ID, 0);
++    }
++
++    // HACK; this is some of the most cursed code i have made just to avoid implementing kernel stuff for now
++    // TODO; change this right away :skull:
++
++    // Forever trapped; January 1, 1970
++    int Sysdeps<ClockGet>::operator()(int clock, time_t *secs, long *nanos) {
++        if (secs)  *secs  = 0;
++        if (nanos) *nanos = 0;
++        return 0;
++    }
++
++    // you are always root
++    uid_t Sysdeps<GetUid>::operator()() {
++        return 0;
++    }
++
++    uid_t Sysdeps<GetEuid>::operator()() {
++        return 0;
++    }
++
++    gid_t Sysdeps<GetGid>::operator()() {
++        return 0;
++    }
++
++    gid_t Sysdeps<GetEgid>::operator()() {
++        return 0;
++    }
++
++    pid_t Sysdeps<GetPpid>::operator()() {
++        return 0;
++    }
++
++    int Sysdeps<GetResuid>::operator()(uid_t *r, uid_t *e, uid_t *s) {
++        if(r) *r = 0;
++        if(e) *e = 0;
++        if(s) *s = 0;
++        return 0;
++    }
++
++    int Sysdeps<GetResgid>::operator()(gid_t *r, gid_t *e, gid_t *s) {
++        if(r) *r = 0;
++        if(e) *e = 0;
++        if(s) *s = 0;
++        return 0;
++    }
++
++    // you are always at /
++    int Sysdeps<GetCwd>::operator()(char *buff, size_t size) {
++        if (buff == 0) return EFAULT;
++        if (size == 0) return EINVAL;
++        if (size < 2)  return ERANGE;
++
++        buff[0] = '/';
++        buff[1] = '\0';
++        return 0;
++    }
++
++    int Sysdeps<Stat>::operator()(fsfd_target, int, const char *path, int, struct stat *st) {
++        memset(st, 0, sizeof(struct stat));
++
++        if(!strcmp(path, "/") || !strcmp(path, "/dev")) {
++            st->st_mode = S_IFDIR | 0755;
++        } else if(!strcmp(path, "/dev/tty")) {
++            st->st_mode = S_IFCHR | 0666;
++        } else {
++            st->st_mode = S_IFREG | 0644;
++        }
++
++        st->st_nlink = 1;
++        st->st_uid = 0;
++        st->st_gid = 0;
++        st->st_size = 0;
++
++        return 0;
++    }
++
++    // fake job control
++    static pid_t    fake_pgid = 1;
++    static pid_t    term_pgid = 1;
++    static sigset_t fake_sigmask;
++    int Sysdeps<GetPgid>::operator()(pid_t pid, pid_t *pgid) {
++        if(pgid) *pgid = fake_pgid;
++        return 0;
++    }
++
++    int Sysdeps<SetPgid>::operator()(pid_t pid, pid_t pgid) {
++        fake_pgid = pgid ? pgid : pid;
++        return 0;
++    }
++
++    int Sysdeps<Sigaction>::operator()(int signum, const struct sigaction *act, struct sigaction *oldact) {
++        return 0;
++    }
++
++    int Sysdeps<Sysconf>::operator()(int num, long *rret) {
++        switch(num) {
++            case _SC_CHILD_MAX:
++                return *rret = 256;
++                break;
++            default:
++                return EINVAL;
++        }
++        return 0;
++    }
++
++    int Sysdeps<Sigprocmask>::operator()(int how, const sigset_t *set, sigset_t *old) {
++        if(old) {
++            *old = fake_sigmask;
++        }
++
++        if(set) {
++            switch(how) {
++                case SIG_SETMASK: {
++                    fake_sigmask = *set;
++                    break;
++                }
++                case SIG_BLOCK: {
++                    for(size_t i = 0; i < sizeof(sigset_t); i++) {
++                        ((unsigned char *)&fake_sigmask)[i] |= ((const unsigned char *)set)[i];
++                    }
++                    break;
++                }
++                case SIG_UNBLOCK: {
++                    for(size_t i = 0; i < sizeof(sigset_t); i++) {
++                        ((unsigned char *)&fake_sigmask)[i] &= ~((const unsigned char *)set)[i];
++                    }
++                    break;
++                }
++            }
++        }
++        return 0;
++    }
++
++    // fake TTY layer
++    int Sysdeps<Ioctl>::operator()(int fd, unsigned long req, void *arg, int *result) {
++        switch(req) {
++            case TIOCGPGRP: {
++                if(arg) *(pid_t*)arg = term_pgid;
++                return 0;
++            }
++            case TIOCSPGRP: {
++                if(arg) term_pgid = *(pid_t*)arg;
++                return 0;
++            }
++            case TIOCGWINSZ: {
++                if(arg) {
++                    struct winsize *ws = (struct winsize *)arg;
++                    ws->ws_row = 25;
++                    ws->ws_col = 80;
++                }
++                return 0;
++            }
++            default: {
++                return EINVAL;
++            }
++        }
++    }
++
++    int Sysdeps<Tcgetwinsize>::operator()(int fd, struct winsize *ws) {
++        ws->ws_col = 80;
++        ws->ws_row = 25;
++        return 0;
++    }
++
++    int Sysdeps<Tcgetattr>::operator()(int fd, struct termios *attr){
++        if(attr) memset(attr, 0, sizeof(struct termios));
++        return 0;
++    }
++
++    int Sysdeps<Tcsetattr>::operator()(int fd, int act, const struct termios *attr){
++        return 0;
++    }
++
++    int Sysdeps<Fcntl>::operator()(int fd, int cmd, va_list args, int *result) {
++        switch(cmd) {
++            case F_GETFD:
++            case F_GETFL: {
++                if(result) {
++                    *result = 0;
++                }
++                return 0;
++            }
++            case F_SETFD:
++            case F_SETFL:
++                return 0;
++            default:
++                return EINVAL;
++        }
++    }
++
++    int Sysdeps<Ttyname>::operator()(int fd, char* buffer, size_t size) {
++        const char *name = "/dev/tty/kbd";
++        if(strlen(name) + 1 > size)
++        return ERANGE;
++        strcpy(buffer, name);
++        return 0;
++    }
++
++    int Sysdeps<GetHostname>::operator()(char *buf, size_t len) {
++        const char *name = "evalynOS";
++        if(strlen(name) + 1 > len)
++            return ENAMETOOLONG;
++        strcpy(buf, name);
++        return 0;
 +    }
 +
 +} // namespace mlibc

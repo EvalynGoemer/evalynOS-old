@@ -76,7 +76,7 @@ void kmain() {
         framebuffer_request.response->framebuffers[0]->green_mask_shift,
         framebuffer_request.response->framebuffers[0]->blue_mask_size,
         framebuffer_request.response->framebuffers[0]->blue_mask_shift,
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, (void*)font8x8_basic_ft,
+        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
         8, 8, 1, 0, 0, 0
     );
 

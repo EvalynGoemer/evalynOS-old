@@ -5,3 +5,4 @@ extern void sys_get_thread_id(struct syscall_frame* frame);
 extern void sys_get_ms(struct syscall_frame* frame);
 extern void sys_sleep_ms(struct syscall_frame* frame);
 extern void sys_exit(struct syscall_frame* frame);
+extern void sys_do_hacky_stdin(struct syscall_frame* frame);

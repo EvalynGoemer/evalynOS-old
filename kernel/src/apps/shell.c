@@ -22,8 +22,8 @@
 #include "drivers/timer.h"
 
 void spawn_app_kthread(char* path) {
-    void* elf_file = malloc(16 * 1024 * 1024);
-    fs_read(path, elf_file, 16 * 1024 * 1024);
+    void* elf_file = malloc(24 * 1024 * 1024);
+    fs_read(path, elf_file, 24 * 1024 * 1024);
     struct elf_info info = load_elf(elf_file, get_current_thread()->pagemap);
     free(elf_file);
     free(path);
@@ -195,7 +195,10 @@ void execute_commands(const char *cmd) {
         pagemap_t* pagemap = new_pagemap();
         char* path = strdup("/bash.elf");
         create_thread(spawn_app_kthread, pagemap, (args_t){(uint64_t)path,0,0,0,0,0});
-        printf("Started running BASH in userspace\n");
+        printf("Replacing shell with bash\n");
+        struct thread* this = get_current_thread();
+        this->sleep_awake_time = 999999999999999;
+        schedule();
         return;
     }
     if ((strcmp("CLEAR", to_upper(cmd)) == 0) || (strcmp("CLS", to_upper(cmd)) == 0)) {
