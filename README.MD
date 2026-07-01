@@ -1,6 +1,10 @@
 # EvalynOS
 A W.I.P 64 Bit OS Kernel
 
+## REWRITE NOTICE
+This kernel is mostly abaondoned and is being rewritten. find the new source code on my [personal git server](https://git.evalyngoemer.com/evalynOS/evalynOS)
+or on [GitHub](https://github.com/EvalynGoemer/evalynOS)
+
 ## Compiling & Running
 
 This kernel uses the [jinx](https://codeberg.org/Mintsuki/jinx) meta build system to compile. You will need all dependancies for such. If you use the [nix](https://nixos.org/) package manager, you can run a developer shell with all necessary dependencies with `nix develop`.
