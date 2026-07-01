@@ -108,6 +108,13 @@ void kmain() {
     setup_timer();
     setup_apic();
 
+    init_tarfs();
+    char readBuf[512];
+    int status = fs_read("/test.txt", readBuf, 512);
+    if (status > 0) {
+        printf("KERNEL: Testing tarfs by printing \"test.txt\" from initramfs: %s", readBuf);
+    }
+
     setup_tty();
     setup_serial();
     if (dbgstub_enabled) {
@@ -118,14 +125,6 @@ void kmain() {
     }
     setup_ps2();
     setup_keyboard();
-
-    init_tarfs();
-
-    char readBuf[512];
-    int status = fs_read("/test.txt", readBuf, 512);
-    if (status > 0) {
-        printf("KERNEL: Testing tarfs by printing \"test.txt\" from initramfs: %s", readBuf);
-    }
 
     init_syscall();
 

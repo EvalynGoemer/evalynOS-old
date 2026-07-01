@@ -43,7 +43,7 @@ tcg:
 	./extras/generate-iso.sh
 	qemu-system-x86_64 \
 		-machine q35 \
-		-M accel=tcg,smm=on -d int -no-reboot -no-shutdown -D qemu_log.txt \
+		-M accel=tcg,smm=on -no-reboot -no-shutdown \
 		-m 512M \
 		-drive if=pflash,format=raw,readonly=on,file=./extras/OVMF_CODE.4m.fd \
 		-drive if=pflash,format=raw,readonly=on,file=./extras/OVMF_VARS.4m.fd \

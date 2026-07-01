@@ -30,6 +30,5 @@ tar --sort=name \
     --mtime='UTC 2026-01-01' \
     --owner=0 --group=0 --numeric-owner \
     -C "${SRC_DIR}" \
-    -cf "${ISO_DIR}/initramfs.tar" .
-
+    -cf - . | gzip -9 > "${ISO_DIR}/initramfs.tar.gz"
 

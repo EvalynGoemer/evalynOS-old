@@ -13,7 +13,9 @@ typedef struct malloc_block {
     uint64_t size;
     [[gnu::unused]] uint64_t padding;
 } malloc_block_t;
+
 spinlock_t slab_memlock;
+
 void* malloc(size_t size) {
     if (size <= 1024) {
         int r = spinlock_lock(&slab_memlock);
@@ -55,6 +57,17 @@ void free (void *ptr) {
 void *zalloc(size_t size) {
     void *ptr = malloc(size);
     memset(ptr, 0, size);
+    return ptr;
+}
+
+void *calloc(size_t nmemb, size_t size) {
+    if (nmemb == 0 || size == 0)
+        return malloc(0);
+    if (nmemb > SIZE_MAX / size)
+        return NULL;
+    size_t total = nmemb * size;
+    void *ptr = malloc(total);
+    memset(ptr, 0, total);
     return ptr;
 }
 

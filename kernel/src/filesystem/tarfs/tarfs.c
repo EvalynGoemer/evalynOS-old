@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -6,6 +7,9 @@
 #include <utils/globals.h>
 #include <filesystem/filesystem.h>
 #include <filesystem/tarfs/tarfs.h>
+
+#define KGZ_IMPLEMENTATION
+#include <kgz_singleheader.h>
 
 // Code adapted from https://wiki.osdev.org/USTAR
 
@@ -61,22 +65,41 @@ int tarfsWrite(__attribute__ ((unused)) char* path, __attribute__ ((unused)) cha
 }
 
 int init_tarfs() {
-    if (module_request.response && module_request.response->module_count > 0) {
-        for (uint64_t i = 0; i < module_request.response->module_count; i++ ) {
-            if (strcmp(module_request.response->modules[i]->path, "/initramfs.tar") == 0) {
-                archive = module_request.response->modules[i]->address; break;
-            }
-        }
-    }
-
+    // check for the module labeled as the initramfs
     if (module_request.response && module_request.response->module_count > 0) {
         for (uint64_t i = 0; i < module_request.response->module_count; i++ ) {
             if (!module_request.response->modules[i]->string) continue;
             if (strcmp(module_request.response->modules[i]->string, "initramfs") == 0) {
-                archive = module_request.response->modules[i]->address; break;
+                const char *path = module_request.response->modules[i]->path;
+                size_t len = strlen(path);
+                if (len >= 3 && strcmp(path + len - 3, ".gz") == 0) {
+                    printf("TARFS: initramfs is compressed with gzip\n");
+                    printf("TARFS: decompressing initramfs\n");
+                    archive = kgz_gzip_decompress(module_request.response->modules[i]->address, module_request.response->modules[i]->size, nullptr, nullptr); break;
+                } else {
+                    archive = module_request.response->modules[i]->address; break;
+                }
             }
         }
     }
+
+    // check the default initramfs path
+    if (module_request.response && module_request.response->module_count > 0) {
+        for (uint64_t i = 0; i < module_request.response->module_count; i++ ) {
+            if (strcmp(module_request.response->modules[i]->path, "/initramfs.tar") == 0) {
+                archive = module_request.response->modules[i]->address;
+                goto found;
+            }
+            if (strcmp(module_request.response->modules[i]->path, "/initramfs.tar.gz") == 0) {
+                printf("TARFS: initramfs is compressed with gzip\n");
+                printf("TARFS: decompressing initramfs\n");
+                archive = kgz_gzip_decompress(module_request.response->modules[i]->address, module_request.response->modules[i]->size, nullptr, nullptr); break;
+                goto found;
+            }
+        }
+    }
+
+    found:
 
     if(archive == NULL) {
         panic("TARFS: Could not find initramfs.tar");
@@ -100,6 +123,6 @@ int init_tarfs() {
         ptr += (((filesize + 511) / 512) + 1) * 512;
     }
 
-    printf("TARFS: initramfas Mounted\n");
+    printf("TARFS: initramfs Mounted\n");
     return 0;
 }
