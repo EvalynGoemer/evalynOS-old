@@ -234,41 +234,24 @@ pagemap_t *new_pagemap() {
     return new_pagemap;
 }
 
+void free_levels(uint64_t table_phys, int levels, int start, int end) {
+    uint64_t* table = (uint64_t*)(table_phys + hhdm_request.response->offset);
+    for (int i = start; i < end; i++) {
+        if (!(table[i] & PTE_PRESENT))
+            continue;
+        uint64_t entry_phys = table[i] & PTE_MASK;
+        if (levels > 1 && !(table[i] & PTE_PS))
+            free_levels(entry_phys, levels - 1, 0, 512);
+        free_page((void*)entry_phys);
+    }
+}
+
 void delete_pagemap(pagemap_t* pagemap) {
     if (!pagemap || !pagemap->top_level)
         return;
-    for (int a = 0; a < 256; a++) {
-        uint64_t pml4p_phys = pagemap->top_level[a] & PTE_MASK;
-        if (pml4p_phys == 0)
-            continue;
-        uint64_t* pml4v = (uint64_t*)(pml4p_phys + hhdm_request.response->offset);
-        for (int j = 0; j < 512; j++) {
-            uint64_t pml3p_phys = pml4v[j] & PTE_MASK;
-            if (pml3p_phys == 0)
-                continue;
-            uint64_t* pml3v = (uint64_t*)(pml3p_phys + hhdm_request.response->offset);
-            for (int k = 0; k < 512; k++) {
-                uint64_t pml2p_phys = pml3v[k] & PTE_MASK;
-                if (pml2p_phys == 0)
-                    continue;
-                uint64_t* pml2v = (uint64_t*)(pml2p_phys + hhdm_request.response->offset);
-                for (int l = 0; l < 512; l++) {
-                    uint64_t pml1p_phys = pml2v[l] & PTE_MASK;
-                    if (pml1p_phys != 0) {
-                        free_page((void*)pml1p_phys);
-                        pml2v[l] = 0;
-                    }
-                }
-                free_page((void*)pml2p_phys);
-                pml3v[k] = 0;
-            }
-            free_page((void*)pml3p_phys);
-            pml4v[j] = 0;
-        }
-        free_page((void*)pml4p_phys);
-        pagemap->top_level[a] = 0;
-    }
+
     uintptr_t top_phys = (uintptr_t)pagemap->top_level - hhdm_request.response->offset;
+    free_levels(top_phys, 4, 0, 256);
     free_page((void*)top_phys);
     pagemap->top_level = NULL;
 
